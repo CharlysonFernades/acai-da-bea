@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Açaí da Bea">
+  <rect width="64" height="64" rx="16" fill="#2b001f"/>
+  <path d="M15 25h34l-4 27H19z" fill="#fff8eb"/>
+  <path d="M18 25c2-8 8-13 14-13 7 0 12 5 14 13z" fill="#6b0d55"/>
+  <circle cx="32" cy="37" r="7" fill="#5f124d"/>
+  <path d="M35 15c4-6 8-5 11-3-5 0-8 2-11 6z" fill="#86a83f"/>
+</svg>
