@@ -201,6 +201,6 @@ A taxa de entrega não foi informada. Por isso, o total exibido representa **som
 
 Repositório: `CharlysonFernades/acai-da-bea`
 
-URL prevista: `https://charlysonfernandes.github.io/acai-da-bea/`
+URL prevista: `https://charlysonfernades.github.io/acai-da-bea/`
 
 O projeto é estático e pode ser publicado diretamente a partir da branch `main`, pasta `/ (root)`.
