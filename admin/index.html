@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#24132c">
+  <title>Painel • Açaí da Bea</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <a class="admin-brand" href="./"><span>A</span><div><strong>Açaí da Bea</strong><small>PAINEL ADMIN</small></div></a>
+    <nav>
+      <button class="nav-link active" data-view="dashboard">⌂ <span>Visão geral</span></button>
+      <button class="nav-link" data-view="products">▦ <span>Produtos</span></button>
+      <button class="nav-link" data-view="ingredients">✦ <span>Ingredientes</span></button>
+      <button class="nav-link" data-view="store">⚙ <span>Loja</span></button>
+    </nav>
+    <div class="sidebar-foot"><span class="demo-dot"></span><div><strong>Modo demonstração</strong><small>Dados salvos neste navegador</small></div></div>
+  </aside>
+
+  <main class="admin-main">
+    <header class="admin-topbar"><button class="menu-btn" id="menu-btn">☰</button><div><small>PAINEL ADMINISTRATIVO</small><h1 id="page-title">Visão geral</h1></div><div class="top-actions"><a class="outline-btn" href="../" target="_blank">Ver site ↗</a></div></header>
+
+    <div class="demo-banner"><strong>Protótipo para apresentação.</strong> Alterações feitas aqui aparecem no site cliente quando ambos estão no mesmo navegador/origem. O Firebase será conectado após validação com a loja.</div>
+
+    <section class="view active" id="view-dashboard">
+      <div class="metric-grid" id="metrics"></div>
+      <div class="dash-grid">
+        <article class="panel"><div class="panel-head"><div><small>ATALHO RÁPIDO</small><h2>Disponibilidade dos produtos</h2></div></div><div id="quick-products"></div></article>
+        <article class="panel"><div class="panel-head"><div><small>RESUMO</small><h2>Como a dona usaria</h2></div></div><ol class="how-list"><li><b>1</b><span>Toca em “Disponível” para marcar um item como esgotado.</span></li><li><b>2</b><span>Edita preço e nome sem mexer no código.</span></li><li><b>3</b><span>Desliga um ingrediente que acabou e ele fica bloqueado no cardápio.</span></li><li><b>4</b><span>Cadastra novos produtos pelo celular.</span></li></ol></article>
+      </div>
+    </section>
+
+    <section class="view" id="view-products">
+      <div class="toolbar"><div><h2>Produtos</h2><p>Gerencie preço, disponibilidade e itens do cardápio.</p></div><button class="primary-btn" id="add-product">+ Novo produto</button></div>
+      <div class="admin-card-list" id="product-list"></div>
+    </section>
+
+    <section class="view" id="view-ingredients">
+      <div class="toolbar"><div><h2>Ingredientes</h2><p>Desative o que estiver em falta. Itens atuais são apenas exemplos para a demonstração.</p></div><button class="primary-btn" id="add-ingredient">+ Novo ingrediente</button></div>
+      <div id="ingredient-groups"></div>
+    </section>
+
+    <section class="view" id="view-store">
+      <div class="toolbar"><div><h2>Dados da loja</h2><p>Informações usadas nos botões de contato do site.</p></div></div>
+      <form class="panel store-form" id="store-form">
+        <div class="field-grid"><label>Nome da loja<input name="name" required></label><label>WhatsApp (somente números)<input name="whatsapp" inputmode="numeric" required></label><label>WhatsApp exibido<input name="whatsappDisplay" required></label><label>Instagram<input name="instagram" required></label></div>
+        <label>Frase principal<input name="tagline" required></label><label>Link do Instagram<input name="instagramUrl" type="url" required></label><label>Link do Google Maps<input name="mapsUrl" type="url" required></label><label>Mensagem de atendimento<textarea name="statusText" rows="3"></textarea></label>
+        <div class="form-actions"><button class="primary-btn" type="submit">Salvar alterações</button><button class="danger-link" id="reset-demo" type="button">Restaurar protótipo</button></div>
+      </form>
+    </section>
+  </main>
+
+  <dialog id="product-modal"><form class="modal-card" id="product-form"><button type="button" class="modal-close" data-close="product-modal">×</button><small>PRODUTO</small><h2 id="product-modal-title">Editar produto</h2><input type="hidden" name="id"><label>Nome<input name="name" required maxlength="80"></label><div class="field-grid"><label>Preço (R$)<input name="price" inputmode="decimal" required placeholder="14,84"></label><label>Ordem<input name="order" type="number" min="1" max="99" value="9"></label></div><label>Descrição<textarea name="description" rows="3" maxlength="240"></textarea></label><label>Imagem (caminho ou URL)<input name="image" placeholder="assets/images/produto.svg"></label><div class="field-grid"><label>Máx. Açaí e Cremes<input name="bases" type="number" min="0" max="20" value="0"></label><label>Máx. Adicionais<input name="adicionais" type="number" min="0" max="20" value="0"></label><label>Máx. Coberturas<input name="coberturas" type="number" min="0" max="20" value="0"></label></div><label class="checkline"><input name="available" type="checkbox" checked> Produto disponível</label><button class="primary-btn full" type="submit">Salvar produto</button></form></dialog>
+
+  <dialog id="ingredient-modal"><form class="modal-card" id="ingredient-form"><button type="button" class="modal-close" data-close="ingredient-modal">×</button><small>INGREDIENTE</small><h2>Novo ingrediente</h2><label>Nome<input name="name" required maxlength="60"></label><label>Grupo<select name="groupId" required><option value="bases">Açaí e Cremes</option><option value="adicionais">Adicionais</option><option value="coberturas">Coberturas</option></select></label><label class="checkline"><input name="available" type="checkbox" checked> Disponível</label><button class="primary-btn full" type="submit">Cadastrar ingrediente</button></form></dialog>
+
+  <div class="toast" id="admin-toast"></div><div class="mobile-backdrop" id="mobile-backdrop"></div>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
