@@ -1,6 +1,5 @@
 const STORE = {
   name: 'Açaí da Bea',
-  subtitle: 'Loja A',
   whatsappDisplay: '+55 85 92145-5990',
   whatsappDigits: '5585921455990',
   instagramHandle: '@acaibea',
@@ -370,37 +369,53 @@ function toggleDeliveryFields() {
 
 function buildWhatsAppMessage(payload) {
   const lines = [
-    `NOVO PEDIDO — ${STORE.name.toUpperCase()}`,
+    `Olá! Acabei de fazer meu pedido no ${STORE.name}!`,
+    'Segue os detalhes:',
     '',
-    `Cliente: ${payload.name}`,
-    `Horário da loja: ${STORE.hoursLabel}`,
+    '────────────',
     '',
-    '🛍️ Itens do pedido'
+    '🛍️ *Itens do pedido*',
+    ''
   ];
 
   payload.items.forEach((item, index) => {
-    lines.push(`${index + 1}. ${item.quantity}x ${item.name} — ${formatCurrency(item.priceCents * item.quantity)}`);
+    const itemTotal = formatCurrency(item.priceCents * item.quantity);
+    lines.push(`${index + 1}. *${item.quantity}x ${item.name}* — ${itemTotal}`);
+
     const selections = summarizeSelections(item.selections);
-    selections.forEach(line => lines.push(`   ${line}`));
-    if (item.itemNote) lines.push(`   Observação do item: ${item.itemNote}`);
+    selections.forEach(line => {
+      const cleanLine = line.replace(/^•\s*/, '');
+      lines.push(`• ${cleanLine}`);
+    });
+
+    if (item.itemNote) {
+      lines.push(`• Observação do item: ${item.itemNote}`);
+    }
+
     lines.push('');
   });
 
-  lines.push(`💰 Total dos produtos: ${formatCurrency(payload.total)}`);
+  lines.push('────────────');
   lines.push('');
-  lines.push(`Atendimento: ${payload.serviceLabel}`);
+  lines.push(`💰 *Total dos produtos:* ${formatCurrency(payload.total)}`);
+  lines.push('');
+  lines.push('*Forma de atendimento*');
+  lines.push(payload.serviceLabel);
 
   if (payload.serviceType === 'delivery') {
-    lines.push(`Endereço: ${payload.address.street}, ${payload.address.number} - ${payload.address.neighborhood}`);
+    lines.push('');
+    lines.push('*Endereço de entrega*');
+    lines.push(`${payload.address.street}, ${payload.address.number} - ${payload.address.neighborhood}`);
     if (payload.address.reference) lines.push(`Referência: ${payload.address.reference}`);
   }
 
-  if (payload.notes) {
-    lines.push(`Observações gerais: ${payload.notes}`);
-  }
-
   lines.push('');
-  lines.push('Olá! Pode confirmar a disponibilidade do pedido, por favor?');
+  lines.push('*Observações*');
+  lines.push(payload.notes || '-');
+  lines.push('');
+  lines.push('Por favor, podem confirmar a disponibilidade do pedido?');
+  lines.push('');
+  lines.push('Obrigado!');
 
   return lines.join('\n');
 }
