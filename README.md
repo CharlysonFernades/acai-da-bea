@@ -1,206 +1,112 @@
-# Açaí da Bea — Landing Page / Cardápio Digital
+# Açaí da Bea — protótipo do site do cliente
 
-Projeto estático em **HTML + CSS + JavaScript puro**, feito para ser simples de editar e publicar no GitHub Pages.
+Protótipo inicial do cardápio digital da **Loja A** do Açaí da Bea.
 
-## O que já está implementado
+## O que este protótipo tem
 
-- layout mobile-first e responsivo;
-- identidade visual roxo/creme/dourado baseada no cardápio original;
-- cardápio com 6 tamanhos/opções confirmadas;
-- preços em centavos para evitar erros de ponto flutuante;
-- personalização por complementos, caldas, fruta e creme trufado;
-- adicional de morango de R$ 2,00;
-- carrinho com quantidade, remoção, subtotal e total;
-- persistência do carrinho com `localStorage`;
-- checkout para entrega ou retirada;
-- endereço de entrega condicional;
-- observações por item e observações gerais;
-- mensagem organizada e preenchida para WhatsApp;
-- botão geral de WhatsApp;
-- Instagram configurado;
-- seção do iFood preparada;
-- SEO básico, Open Graph e Schema.org;
-- acessibilidade básica e foco visível;
-- sem frameworks, trackers, cookies desnecessários ou credenciais.
+- página do cliente com visual em roxo + amarelo;
+- cardápio com produtos e fotos;
+- personalização básica de cremes, adicionais e coberturas;
+- carrinho lateral;
+- finalização com mensagem formatada no WhatsApp;
+- horário atualizado: **terça a domingo, das 17:00 às 22:00**.
 
 ## Estrutura
 
 ```text
-/
+acai-da-bea-prototipo/
 ├── index.html
 ├── css/
 │   └── style.css
 ├── js/
-│   ├── data.js      # dados centrais do negócio e produtos
-│   ├── cart.js      # estado/persistência do carrinho
-│   └── app.js       # interface, checkout e WhatsApp
-├── assets/
-│   ├── images/
-│   └── icons/
-└── README.md
+│   └── app.js
+└── assets/
+    └── images/
 ```
 
-## Dados confirmados usados
+## Como rodar
 
-Os seguintes dados vieram do cardápio original fornecido:
+Basta abrir o arquivo `index.html` no navegador.
 
-- nome: **Açaí da Bea**;
-- WhatsApp/telefone: **(81) 97401-0159**;
-- Instagram: **@acaidabea_**;
-- Tradicional 300 ml: **R$ 16,90**;
-- Tradicional 400 ml: **R$ 20,90**;
-- Tradicional 500 ml: **R$ 24,90**;
-- Premium Trufado 300 ml: **R$ 21,90**;
-- Premium Trufado 400 ml: **R$ 25,90**;
-- Premium Trufado 500 ml: **R$ 29,90**;
-- morango: **+ R$ 2,00**;
-- regras de complementos/caldas/frutas/cremes.
+Se quiser testar com mais segurança, pode usar uma extensão como **Live Server** no VS Code.
 
-Também foi fornecido e configurado o **link direto oficial da loja no iFood**.
+## Onde alterar os dados principais
 
-Pelo print do Google Maps fornecido depois, também foram confirmados:
+Abra `js/app.js`.
 
-- categoria no Google Maps: **Sorveteria**;
-- endereço: **R. Ipu, 2102 - Tabapuazinho, Caucaia - CE, 61634-110**.
+### WhatsApp
 
-## Atenção: dados ainda não confirmados
-
-Antes de publicar definitivamente, ainda falta confirmar principalmente:
+Procure:
 
 ```js
-openingHours: [],  // [ADICIONAR HORÁRIO]
+whatsappDisplay: '+55 85 92145-5990',
+whatsappDigits: '5585921455990',
 ```
 
-O link oficial do iFood já está configurado em `js/data.js`.
+### Instagram
 
-O botão de localização já usa uma busca direta no Google Maps baseada no endereço confirmado.
-
-## Como alterar telefone / WhatsApp / Instagram
-
-Abra `js/data.js` e edite somente o objeto `restaurant`:
+Procure:
 
 ```js
-whatsappDisplay: '(81) 97401-0159',
-whatsappDigits: '5581974010159',
-phoneDisplay: '(81) 97401-0159',
-phoneHref: 'tel:+5581974010159',
-instagramHandle: '@acaidabea_',
-instagramUrl: 'https://www.instagram.com/acaidabea_/',
-ifoodUrl: 'https://www.ifood.com.br/delivery/recife-pe/acai-da-bea-jardim-sao-paulo/2e2ad808-9adb-4f1c-9eb5-f7189060ffd3',
+instagramHandle: '@acaibea',
+instagramUrl: 'https://www.instagram.com/acaibea?stkn=MWIoYjJmM2NtNmN1bw=='
 ```
 
-Não é necessário procurar esses dados em vários arquivos.
+### Google Maps
 
-## Como habilitar formas de pagamento
-
-As formas de pagamento direto pelo WhatsApp **não foram confirmadas**, então ficam desabilitadas por padrão.
-
-Em `js/data.js`:
+Procure:
 
 ```js
-paymentMethods: [
-  { id: 'pix', label: 'PIX', enabled: true },
-  { id: 'cash', label: 'Dinheiro', enabled: true },
-  { id: 'card', label: 'Cartão', enabled: true },
-],
+mapsUrl: 'https://maps.app.goo.gl/E6QV2MibhUaMiP2w5'
 ```
 
-Habilite apenas o que o estabelecimento realmente aceitar.
+### Horário
 
-## Como alterar produtos e preços
+Procure:
 
-Todos os produtos ficam em `js/data.js`, no array `products`.
+```js
+hoursLabel: 'terça a domingo, das 17:00 às 22:00'
+```
 
-Exemplo:
+## Como alterar produtos
+
+No arquivo `js/app.js`, procure o array `PRODUCTS`.
+
+Cada produto tem essa estrutura:
 
 ```js
 {
-  id: 'trad-300',
-  name: 'Açaí Tradicional 300 ml',
-  category: 'Açaí Tradicional',
-  description: 'Inclui até 4 complementos, até 2 caldas e 1 fruta.',
-  priceCents: 1690,
-  image: 'assets/images/tradicional-300.jpg',
-  available: true,
-  limits: { complements: 4, syrups: 2, fruits: 1, truffleCreams: 0 },
+  id: 'acai-330',
+  name: 'Açaí de 330g',
+  category: 'Mais pedido',
+  priceCents: 1484,
+  image: 'assets/images/acai-330.webp',
+  description: '...',
+  selectionRules: { acaiCremes: 4, adicionais: 4, coberturas: 2 }
 }
 ```
 
-Para mudar **R$ 16,90 para R$ 18,90**, use:
+### Para trocar o preço
 
-```js
-priceCents: 1890
-```
+Altere `priceCents`.
 
-Nunca use `18.90` para os cálculos internos.
+Exemplo:
+- `1484` = R$ 14,84
+- `4499` = R$ 44,99
 
-## Como adicionar um produto
+### Para trocar a foto
 
-1. Copie um objeto existente no array `products`.
-2. Troque `id`, `name`, `category`, `description`, `priceCents` e `image`.
-3. Coloque a nova foto em `assets/images/`.
-4. Ajuste os limites de personalização.
+1. coloque a imagem nova dentro de `assets/images/`
+2. troque o caminho em `image`.
 
-## Como remover/desativar um produto
+### Para adicionar um novo produto
 
-Sem apagar o cadastro, mude:
+Adicione um novo objeto dentro de `PRODUCTS`.
 
-```js
-available: false
-```
+### Para remover um produto
 
-## Como trocar imagens
+Apague o objeto do produto dentro de `PRODUCTS`.
 
-Substitua os arquivos dentro de `assets/images/` ou altere a propriedade `image` do produto em `js/data.js`.
+## Observação
 
-Prefira imagens WebP/JPEG otimizadas, idealmente entre 800 e 1200 px de largura.
-
-## Como executar localmente
-
-Na pasta do projeto:
-
-```bash
-python3 -m http.server 8000
-```
-
-Depois abra:
-
-```text
-http://localhost:8000
-```
-
-Não abra somente o `index.html` clicando no arquivo, pois o projeto usa módulos JavaScript.
-
-## Como publicar no GitHub Pages
-
-1. Crie um repositório no GitHub.
-2. Envie todos os arquivos mantendo a estrutura das pastas.
-3. Vá em **Settings → Pages**.
-4. Em **Build and deployment**, escolha **Deploy from a branch**.
-5. Selecione a branch `main` e a pasta `/ (root)`.
-6. Salve.
-7. Aguarde o GitHub gerar o endereço público.
-
-Depois da publicação, adicione a URL final como `canonical` e `og:url` no `<head>` do `index.html`.
-
-## Segurança e privacidade
-
-- nenhuma senha, token ou API key no front-end;
-- nenhuma coleta de CPF, RG, cartão, CVV ou senha;
-- dados pessoais do checkout não são persistidos em `localStorage`;
-- apenas o carrinho é salvo localmente;
-- o site não envia WhatsApp automaticamente: abre a conversa com a mensagem pronta e o usuário confirma o envio;
-- nenhum Analytics/Pixel foi adicionado.
-
-## Observação sobre entrega
-
-A taxa de entrega não foi informada. Por isso, o total exibido representa **somente os produtos** e a mensagem enviada informa que a taxa de entrega deve ser confirmada.
-
-
-## Publicação no GitHub Pages
-
-Repositório: `CharlysonFernades/acai-da-bea`
-
-URL prevista: `https://charlysonfernades.github.io/acai-da-bea/`
-
-O projeto é estático e pode ser publicado diretamente a partir da branch `main`, pasta `/ (root)`.
+Este projeto é a **versão do cliente**. O painel administrativo pode ser criado depois como um projeto separado ligado ao Firebase.

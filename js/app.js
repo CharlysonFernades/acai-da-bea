@@ -1,285 +1,402 @@
-import { loadData, CART_KEY, brl, escapeHTML } from './demo-store.js';
+const STORE = {
+  name: 'Açaí da Bea',
+  subtitle: 'Loja A',
+  whatsappDisplay: '+55 85 92145-5990',
+  whatsappDigits: '5585921455990',
+  instagramHandle: '@acaibea',
+  instagramUrl: 'https://www.instagram.com/acaibea?stkn=MWIoYjJmM2NtNmN1bw==',
+  mapsUrl: 'https://maps.app.goo.gl/E6QV2MibhUaMiP2w5',
+  hoursLabel: 'terça a domingo, das 17:00 às 22:00'
+};
 
-let data = loadData();
-let activeProduct = null;
-let cart = loadCart();
+const OPTION_GROUPS = {
+  acaiCremes: {
+    label: 'Açaí e cremes',
+    options: ['Açaí tradicional', 'Creme de ninho', 'Creme de morango', 'Creme de avelã', 'Creme de Ovomaltine']
+  },
+  adicionais: {
+    label: 'Adicionais',
+    options: ['Leite em pó', 'Granola', 'Paçoca', 'Jujuba', 'Gotas de chocolate', 'Morango', 'Banana']
+  },
+  coberturas: {
+    label: 'Coberturas',
+    options: ['Leite condensado', 'Cobertura de chocolate', 'Cobertura de morango']
+  }
+};
 
-const $ = s => document.querySelector(s);
-const grid = $('#product-grid');
-const productDialog = $('#product-dialog');
-const dialogContent = $('#product-dialog-content');
-const cartDrawer = $('#cart-drawer');
-const backdrop = $('#backdrop');
-const checkoutDialog = $('#checkout-dialog');
+const PRODUCTS = [
+  {
+    id: 'acai-330',
+    name: 'Açaí de 330g',
+    category: 'Mais pedido',
+    priceCents: 1484,
+    image: 'assets/images/acai-330.webp',
+    description: 'Escolha até 4 opções entre açaí e cremes, 4 adicionais e 2 coberturas. Toda a descrição entra como parte do peso escolhido.',
+    selectionRules: { acaiCremes: 4, adicionais: 4, coberturas: 2 }
+  },
+  {
+    id: 'acai-750',
+    name: 'Açaí de 750g',
+    category: 'Tamanho família',
+    priceCents: 3374,
+    image: 'assets/images/acai-750.webp',
+    description: 'Escolha até 6 opções entre açaí e cremes, 6 adicionais e 2 coberturas. Toda a descrição entra como parte do peso escolhido.',
+    selectionRules: { acaiCremes: 6, adicionais: 6, coberturas: 2 }
+  },
+  {
+    id: 'acai-1kg',
+    name: 'Açaí de 1 kg',
+    category: 'Compartilhar',
+    priceCents: 4499,
+    image: 'assets/images/acai-1kg.webp',
+    description: 'Escolha até 8 opções entre açaí e cremes, 8 adicionais e 2 coberturas. Toda a descrição entra como parte do peso escolhido.',
+    selectionRules: { acaiCremes: 8, adicionais: 8, coberturas: 2 }
+  },
+  {
+    id: 'salada-gourmet',
+    name: 'Salada de fruta gourmet',
+    category: 'Especial',
+    priceCents: 1400,
+    oldPriceCents: 1550,
+    image: 'assets/images/salada-gourmet.webp',
+    description: '400 ml • creme de morango e creme de avelã.',
+    selectionRules: null
+  }
+];
+
+const state = {
+  cart: loadCart(),
+  currentProduct: null
+};
+
+const els = {
+  productGrid: document.getElementById('product-grid'),
+  productDialog: document.getElementById('product-dialog'),
+  productForm: document.getElementById('product-form'),
+  productDialogContent: document.getElementById('product-dialog-content'),
+  cartDrawer: document.getElementById('cart-drawer'),
+  cartItems: document.getElementById('cart-items'),
+  cartTotal: document.getElementById('cart-total'),
+  cartCount: document.getElementById('cart-count'),
+  cartFooter: document.getElementById('cart-footer'),
+  backdrop: document.getElementById('backdrop'),
+  cartButton: document.getElementById('cart-button'),
+  closeCart: document.getElementById('close-cart'),
+  checkoutButton: document.getElementById('checkout-button'),
+  checkoutDialog: document.getElementById('checkout-dialog'),
+  checkoutForm: document.getElementById('checkout-form'),
+  closeCheckout: document.getElementById('close-checkout'),
+  toast: document.getElementById('toast'),
+  heroWhatsapp: document.getElementById('hero-whatsapp'),
+  contactWhatsapp: document.getElementById('contact-whatsapp'),
+  contactInstagram: document.getElementById('contact-instagram'),
+  contactMaps: document.getElementById('contact-maps'),
+  floatingCartWrap: document.getElementById('floating-cart-wrap'),
+  floatingCart: document.getElementById('floating-cart'),
+  floatingCartText: document.getElementById('floating-cart-text'),
+  deliveryFields: document.getElementById('delivery-fields')
+};
+
+function formatCurrency(cents) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((cents || 0) / 100);
+}
 
 function loadCart() {
-  try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; }
-  catch { return []; }
+  try {
+    return JSON.parse(localStorage.getItem('acai-da-bea-cart')) || [];
+  } catch {
+    return [];
+  }
 }
 
 function saveCart() {
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
-  renderCart();
+  localStorage.setItem('acai-da-bea-cart', JSON.stringify(state.cart));
 }
 
-function toast(msg) {
-  const el = $('#toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toast.t);
-  toast.t = setTimeout(() => el.classList.remove('show'), 2200);
+function showToast(message) {
+  els.toast.textContent = message;
+  els.toast.classList.add('show');
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => els.toast.classList.remove('show'), 2200);
 }
 
-function absoluteImage(path) {
-  return path || 'assets/images/acai-330.webp';
-}
-
-function applyStore() {
-  const s = data.store;
-  document.title = `${s.name} • Cardápio`;
-  $('#brand-name').textContent = s.name;
-  $('#hero-tagline').textContent = s.tagline;
-  $('#whatsapp-display').textContent = s.whatsappDisplay;
-  $('#instagram-display').textContent = s.instagram;
-
-  const wa = `https://wa.me/${encodeURIComponent(s.whatsapp)}`;
-  $('#hero-whatsapp').href = wa;
-  $('#contact-whatsapp').href = wa;
-  $('#contact-instagram').href = s.instagramUrl;
-  $('#contact-maps').href = s.mapsUrl;
+function createCard(product) {
+  const oldPrice = product.oldPriceCents ? `<span class="old-price">${formatCurrency(product.oldPriceCents)}</span>` : '';
+  return `
+    <article class="product-card">
+      <div class="product-photo">
+        <img src="${product.image}" alt="${product.name} do ${STORE.name}" loading="lazy" width="921" height="695">
+      </div>
+      <div class="product-body">
+        <span class="product-tag">${product.category}</span>
+        <h3 class="product-title">${product.name}</h3>
+        <p class="product-desc">${product.description}</p>
+        <div class="product-meta">
+          <div class="product-price">
+            ${oldPrice}
+            <strong>${formatCurrency(product.priceCents)}</strong>
+          </div>
+          <button class="button primary" type="button" data-product-open="${product.id}">Escolher</button>
+        </div>
+      </div>
+    </article>
+  `;
 }
 
 function renderProducts() {
-  const products = [...data.products].sort((a, b) => (a.order || 0) - (b.order || 0));
-  grid.innerHTML = products.map(p => {
-    const buttonText = !p.available ? 'Indisponível no momento' : (Object.keys(p.rules || {}).length ? 'Escolher e personalizar' : 'Adicionar ao pedido');
-    return `
-      <article class="product-card">
-        <div class="product-media">
-          <img src="${escapeHTML(absoluteImage(p.image))}" alt="${escapeHTML(p.name)}" loading="lazy" width="960" height="720">
-          <span class="status-badge ${p.available ? '' : 'off'}">${p.available ? 'DISPONÍVEL' : 'ESGOTADO'}</span>
-        </div>
-        <div class="product-body">
-          <h3>${escapeHTML(p.name)}</h3>
-          <p>${escapeHTML(p.description)}</p>
-          <p class="product-note">${escapeHTML(p.note || '')}</p>
-          <div class="price-row">
-            <strong>${brl(p.priceCents)}</strong>
-            ${p.oldPriceCents ? `<span class="old-price">${brl(p.oldPriceCents)}</span>` : ''}
-          </div>
-          <button class="add-button" data-product="${escapeHTML(p.id)}" ${p.available ? '' : 'disabled'}>${buttonText}</button>
-        </div>
-      </article>`;
-  }).join('');
-
-  grid.querySelectorAll('[data-product]').forEach(btn => {
-    btn.addEventListener('click', () => openProduct(btn.dataset.product));
+  els.productGrid.innerHTML = PRODUCTS.map(createCard).join('');
+  els.productGrid.querySelectorAll('[data-product-open]').forEach(button => {
+    button.addEventListener('click', () => openProduct(button.dataset.productOpen));
   });
 }
 
-function groupHTML(groupId, max) {
-  const group = data.groups.find(g => g.id === groupId);
-  if (!group) return '';
-  const items = data.ingredients.filter(i => i.groupId === groupId);
+function makeOptionGroup(key, max) {
+  const group = OPTION_GROUPS[key];
   return `
-    <section class="custom-group" data-group="${groupId}" data-max="${max}">
-      <div class="group-head">
-        <h3>${escapeHTML(group.name)}</h3>
-        <span class="limit-badge">até ${max}</span>
+    <fieldset class="option-group" data-group="${key}" data-max="${max}">
+      <legend>${group.label}</legend>
+      <div class="option-help">Escolha até ${max} ${max === 1 ? 'opção' : 'opções'}.</div>
+      <div class="choice-grid">
+        ${group.options.map(option => `
+          <label class="option-pill">
+            <input type="checkbox" name="${key}" value="${option}">
+            <span>${option}</span>
+          </label>
+        `).join('')}
       </div>
-      <div class="option-grid">
-        ${items.map(i => `
-          <label class="option ${i.available ? '' : 'disabled'}">
-            <input type="checkbox" name="${groupId}" value="${escapeHTML(i.id)}" ${i.available ? '' : 'disabled'}>
-            <span>${escapeHTML(i.name)}${i.available ? '' : ' • esgotado'}</span>
-          </label>`).join('')}
-      </div>
-      <p class="demo-note">${escapeHTML(group.note || '')}</p>
-    </section>`;
+    </fieldset>
+  `;
 }
 
-function openProduct(id) {
-  const p = data.products.find(x => x.id === id);
-  if (!p || !p.available) return;
+function openProduct(productId) {
+  const product = PRODUCTS.find(item => item.id === productId);
+  if (!product) return;
+  state.currentProduct = product;
 
-  activeProduct = p;
-  const groups = Object.entries(p.rules || {})
-    .filter(([, max]) => max > 0)
-    .map(([groupId, max]) => groupHTML(groupId, max))
-    .join('');
+  const optionBlocks = product.selectionRules
+    ? Object.entries(product.selectionRules).map(([key, max]) => makeOptionGroup(key, max)).join('')
+    : '<div class="option-group"><div class="option-help">Este item não possui personalização cadastrada nesta demonstração.</div></div>';
 
-  dialogContent.innerHTML = `
-    <div class="dialog-product-head">
-      <img src="${escapeHTML(p.image)}" alt="${escapeHTML(p.name)}">
-      <div>
-        <h2>${escapeHTML(p.name)}</h2>
-        <p>${escapeHTML(p.description)}</p>
-        <strong class="dialog-price">${brl(p.priceCents)}</strong>
+  els.productDialogContent.innerHTML = `
+    <div class="dialog-grid">
+      <div class="dialog-image">
+        <img src="${product.image}" alt="${product.name} do ${STORE.name}" width="921" height="695">
+      </div>
+      <div class="dialog-copy">
+        <span class="product-tag">${product.category}</span>
+        <h3>${product.name}</h3>
+        <p>${product.description}</p>
+        <div class="dialog-price">${formatCurrency(product.priceCents)}</div>
       </div>
     </div>
-    ${groups}
     <div class="dialog-actions">
-      <button class="button primary full" type="button" id="add-active-product">Adicionar ao pedido</button>
-    </div>`;
+      ${optionBlocks}
+      <label class="text-label">
+        Observação do item
+        <textarea name="itemNote" rows="3" maxlength="200" placeholder="Ex.: sem granola, colocar mais leite em pó..."></textarea>
+      </label>
+      <button class="button primary full" type="submit">Adicionar ao pedido</button>
+    </div>
+  `;
 
-  dialogContent.querySelectorAll('.custom-group').forEach(section => {
-    const max = Number(section.dataset.max);
-    section.querySelectorAll('input').forEach(input => input.addEventListener('change', () => {
-      const checked = section.querySelectorAll('input:checked');
-      if (checked.length > max) {
-        input.checked = false;
-        toast(`Escolha no máximo ${max} opção${max > 1 ? 'ões' : ''} neste grupo.`);
-      }
-    }));
-  });
-
-  $('#add-active-product').addEventListener('click', addActiveProduct);
-  productDialog.showModal();
+  attachOptionLimits();
+  els.productDialog.showModal();
 }
 
-function selectedChoices() {
-  const result = {};
-  dialogContent.querySelectorAll('.custom-group').forEach(section => {
-    result[section.dataset.group] = [...section.querySelectorAll('input:checked')].map(input => input.value);
-  });
-  return result;
-}
-
-function choiceNames(choices) {
-  return Object.entries(choices || {}).flatMap(([groupId, ids]) => {
-    const group = data.groups.find(x => x.id === groupId);
-    const names = ids.map(id => data.ingredients.find(i => i.id === id)?.name).filter(Boolean);
-    return names.length ? [{ groupName: group?.name || groupId, names }] : [];
+function attachOptionLimits() {
+  els.productDialogContent.querySelectorAll('[data-group]').forEach(groupEl => {
+    const max = Number(groupEl.dataset.max);
+    const checkboxes = [...groupEl.querySelectorAll('input[type="checkbox"]')];
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', () => {
+        const checked = checkboxes.filter(item => item.checked);
+        if (checked.length > max) {
+          checkbox.checked = false;
+          showToast(`Você pode escolher até ${max} ${max === 1 ? 'opção' : 'opções'} nesse grupo.`);
+        }
+      });
+    });
   });
 }
 
-function addActiveProduct() {
-  if (!activeProduct) return;
-  cart.push({
-    key: `${activeProduct.id}-${Date.now()}`,
-    productId: activeProduct.id,
-    qty: 1,
-    choices: selectedChoices()
-  });
+function summarizeSelections(selections) {
+  return Object.entries(selections)
+    .filter(([, values]) => Array.isArray(values) && values.length)
+    .map(([key, values]) => `${OPTION_GROUPS[key].label}: ${values.join(', ')}`);
+}
+
+function handleProductSubmit(event) {
+  event.preventDefault();
+  if (!state.currentProduct) return;
+
+  const formData = new FormData(els.productForm);
+  const selections = {};
+
+  if (state.currentProduct.selectionRules) {
+    for (const key of Object.keys(state.currentProduct.selectionRules)) {
+      selections[key] = formData.getAll(key);
+    }
+  }
+
+  const itemNote = String(formData.get('itemNote') || '').trim();
+  const fingerprint = JSON.stringify({ id: state.currentProduct.id, selections, itemNote });
+  const existing = state.cart.find(item => item.fingerprint === fingerprint);
+
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    state.cart.push({
+      id: state.currentProduct.id,
+      fingerprint,
+      name: state.currentProduct.name,
+      image: state.currentProduct.image,
+      priceCents: state.currentProduct.priceCents,
+      quantity: 1,
+      selections,
+      itemNote
+    });
+  }
+
   saveCart();
-  productDialog.close();
-  toast('Adicionado ao pedido');
+  renderCart();
+  els.productDialog.close();
+  els.productForm.reset();
+  showToast('Item adicionado ao pedido.');
+}
+
+function cartTotal() {
+  return state.cart.reduce((sum, item) => sum + item.priceCents * item.quantity, 0);
+}
+
+function cartCount() {
+  return state.cart.reduce((sum, item) => sum + item.quantity, 0);
 }
 
 function renderCart() {
-  $('#cart-count').textContent = cart.reduce((s, i) => s + i.qty, 0);
-  const current = cart
-    .map(item => ({ ...item, product: data.products.find(p => p.id === item.productId) }))
-    .filter(x => x.product);
+  const total = cartTotal();
+  const count = cartCount();
+  els.cartCount.textContent = String(count);
+  els.cartTotal.textContent = formatCurrency(total);
+  els.floatingCartText.textContent = `${count} ${count === 1 ? 'item' : 'itens'} • ${formatCurrency(total)}`;
+  els.floatingCartWrap.classList.toggle('hidden', count === 0);
 
-  if (!current.length) {
-    $('#cart-items').innerHTML = `
-      <div class="empty-cart">
-        <div>
-          <div style="font-size:38px">🛒</div>
-          <strong>Seu pedido está vazio</strong>
-          <p>Escolha um item do cardápio para começar.</p>
-        </div>
-      </div>`;
-    $('#cart-footer').hidden = true;
+  if (!state.cart.length) {
+    els.cartItems.innerHTML = `
+      <div class="cart-empty">
+        <strong>Seu pedido está vazio.</strong>
+        <p>Escolha um produto do cardápio para começar.</p>
+      </div>
+    `;
+    els.cartFooter.classList.add('hidden');
     return;
   }
 
-  $('#cart-footer').hidden = false;
-  $('#cart-items').innerHTML = current.map(({ product: p, ...item }) => {
-    const groups = choiceNames(item.choices)
-      .map(({ groupName, names }) => `${escapeHTML(groupName)}: ${escapeHTML(names.join(', '))}`)
-      .join('<br>');
+  els.cartFooter.classList.remove('hidden');
+
+  els.cartItems.innerHTML = state.cart.map((item, index) => {
+    const lines = summarizeSelections(item.selections);
+    if (item.itemNote) lines.push(`Observação: ${item.itemNote}`);
+    const extraLines = lines.length ? `<ul>${lines.map(line => `<li>${line}</li>`).join('')}</ul>` : '';
 
     return `
       <article class="cart-item">
-        <div class="cart-item-top">
-          <h3>${escapeHTML(p.name)}</h3>
-          <strong>${brl(p.priceCents * item.qty)}</strong>
-        </div>
-        <p>${groups || 'Sem personalização'}</p>
-        <div class="cart-item-actions">
-          <div class="qty">
-            <button data-dec="${item.key}" aria-label="Diminuir">−</button>
-            <b>${item.qty}</b>
-            <button data-inc="${item.key}" aria-label="Aumentar">+</button>
+        <div class="cart-item-head">
+          <div>
+            <h3>${item.quantity}x ${item.name}</h3>
+            <strong>${formatCurrency(item.priceCents * item.quantity)}</strong>
           </div>
-          <button class="remove-item" data-remove="${item.key}">Remover</button>
+          <button type="button" class="dialog-close" data-remove="${index}" aria-label="Remover item">×</button>
         </div>
-      </article>`;
+        ${extraLines}
+        <div class="qty-row">
+          <small>Valor unitário: ${formatCurrency(item.priceCents)}</small>
+          <div class="qty-controls">
+            <button type="button" data-minus="${index}" aria-label="Diminuir quantidade">−</button>
+            <strong>${item.quantity}</strong>
+            <button type="button" data-plus="${index}" aria-label="Aumentar quantidade">+</button>
+          </div>
+        </div>
+      </article>
+    `;
   }).join('');
 
-  $('#cart-total').textContent = brl(current.reduce((s, x) => s + x.product.priceCents * x.qty, 0));
-  $('#cart-items').querySelectorAll('[data-inc]').forEach(b => b.onclick = () => changeQty(b.dataset.inc, 1));
-  $('#cart-items').querySelectorAll('[data-dec]').forEach(b => b.onclick = () => changeQty(b.dataset.dec, -1));
-  $('#cart-items').querySelectorAll('[data-remove]').forEach(b => b.onclick = () => {
-    cart = cart.filter(i => i.key !== b.dataset.remove);
-    saveCart();
+  els.cartItems.querySelectorAll('[data-remove]').forEach(button => {
+    button.addEventListener('click', () => {
+      state.cart.splice(Number(button.dataset.remove), 1);
+      saveCart();
+      renderCart();
+      showToast('Item removido do pedido.');
+    });
   });
-}
 
-function changeQty(key, delta) {
-  const item = cart.find(x => x.key === key);
-  if (!item) return;
-  item.qty = Math.max(1, item.qty + delta);
-  saveCart();
+  els.cartItems.querySelectorAll('[data-minus]').forEach(button => {
+    button.addEventListener('click', () => {
+      const item = state.cart[Number(button.dataset.minus)];
+      item.quantity -= 1;
+      if (item.quantity <= 0) {
+        state.cart = state.cart.filter((_, idx) => idx !== Number(button.dataset.minus));
+      }
+      saveCart();
+      renderCart();
+    });
+  });
+
+  els.cartItems.querySelectorAll('[data-plus]').forEach(button => {
+    button.addEventListener('click', () => {
+      const item = state.cart[Number(button.dataset.plus)];
+      item.quantity += 1;
+      saveCart();
+      renderCart();
+    });
+  });
 }
 
 function openCart() {
-  cartDrawer.classList.add('open');
-  cartDrawer.setAttribute('aria-hidden', 'false');
-  backdrop.hidden = false;
+  els.cartDrawer.classList.add('open');
+  els.cartDrawer.setAttribute('aria-hidden', 'false');
+  els.backdrop.hidden = false;
 }
 
 function closeCart() {
-  cartDrawer.classList.remove('open');
-  cartDrawer.setAttribute('aria-hidden', 'true');
-  backdrop.hidden = true;
+  els.cartDrawer.classList.remove('open');
+  els.cartDrawer.setAttribute('aria-hidden', 'true');
+  els.backdrop.hidden = true;
 }
 
-function validateCart() {
-  const unavailable = cart.filter(i => !data.products.find(p => p.id === i.productId)?.available);
-  if (unavailable.length) {
-    toast('Um item ficou indisponível. Atualizamos seu carrinho.');
-    cart = cart.filter(i => data.products.find(p => p.id === i.productId)?.available);
-    saveCart();
-    return false;
-  }
-  return cart.length > 0;
+function toggleDeliveryFields() {
+  const type = new FormData(els.checkoutForm).get('service-type') || 'retirada';
+  els.deliveryFields.hidden = type !== 'delivery';
 }
 
-function buildWhatsAppMessage(name, notes) {
-  const storeName = data.store?.name || 'Açaí da Bea';
+function buildWhatsAppMessage(payload) {
   const lines = [
-    `🍧 *NOVO PEDIDO — ${storeName.toUpperCase()}*`,
+    `NOVO PEDIDO — ${STORE.name.toUpperCase()}`,
     '',
-    `👤 *Cliente:* ${name}`,
-    `🕔 *Horário da loja:* terça a sábado, das 17:00 às 22:00`,
+    `Cliente: ${payload.name}`,
+    `Horário da loja: ${STORE.hoursLabel}`,
     '',
-    '🛍️ *Itens do pedido:*'
+    '🛍️ Itens do pedido'
   ];
 
-  let total = 0;
-
-  cart.forEach((item, index) => {
-    const p = data.products.find(x => x.id === item.productId);
-    if (!p) return;
-    total += p.priceCents * item.qty;
-    lines.push(`${index + 1}. *${item.qty}x ${p.name}* — *${brl(p.priceCents * item.qty)}*`);
-
-    choiceNames(item.choices).forEach(({ groupName, names }) => {
-      lines.push(`   • _${groupName}:_ ${names.join(', ')}`);
-    });
-
+  payload.items.forEach((item, index) => {
+    lines.push(`${index + 1}. ${item.quantity}x ${item.name} — ${formatCurrency(item.priceCents * item.quantity)}`);
+    const selections = summarizeSelections(item.selections);
+    selections.forEach(line => lines.push(`   ${line}`));
+    if (item.itemNote) lines.push(`   Observação do item: ${item.itemNote}`);
     lines.push('');
   });
 
-  lines.push('────────────────');
-  lines.push(`💰 *Total dos produtos:* *${brl(total)}*`);
-  lines.push('📍 *Atendimento:* combinar disponibilidade e retirada pelo WhatsApp');
+  lines.push(`💰 Total dos produtos: ${formatCurrency(payload.total)}`);
+  lines.push('');
+  lines.push(`Atendimento: ${payload.serviceLabel}`);
 
-  if (notes.trim()) {
-    lines.push(`📝 *Observações:* ${notes.trim()}`);
+  if (payload.serviceType === 'delivery') {
+    lines.push(`Endereço: ${payload.address.street}, ${payload.address.number} - ${payload.address.neighborhood}`);
+    if (payload.address.reference) lines.push(`Referência: ${payload.address.reference}`);
+  }
+
+  if (payload.notes) {
+    lines.push(`Observações gerais: ${payload.notes}`);
   }
 
   lines.push('');
@@ -288,42 +405,79 @@ function buildWhatsAppMessage(name, notes) {
   return lines.join('\n');
 }
 
-$('#cart-button').onclick = openCart;
-$('#close-cart').onclick = closeCart;
-backdrop.onclick = closeCart;
-
-$('#checkout-button').onclick = () => {
-  data = loadData();
-  if (!validateCart()) return;
-  closeCart();
-  checkoutDialog.showModal();
-};
-
-$('#close-checkout').onclick = () => checkoutDialog.close();
-
-$('#checkout-form').addEventListener('submit', event => {
+function handleCheckoutSubmit(event) {
   event.preventDefault();
-  data = loadData();
-  if (!validateCart()) return;
+  if (!state.cart.length) {
+    showToast('Seu pedido está vazio.');
+    return;
+  }
 
-  const name = $('#customer-name').value.trim();
-  if (!name) return;
+  const formData = new FormData(els.checkoutForm);
+  const name = String(formData.get('customer-name') || '').trim();
+  const notes = String(formData.get('customer-notes') || '').trim();
+  const serviceType = String(formData.get('service-type') || 'retirada');
 
-  const msg = buildWhatsAppMessage(name, $('#customer-notes').value);
-  window.open(`https://wa.me/${data.store.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
-  checkoutDialog.close();
-});
+  if (!name) {
+    showToast('Digite seu nome para continuar.');
+    return;
+  }
 
-function refresh() {
-  data = loadData();
-  applyStore();
-  renderProducts();
-  renderCart();
+  const payload = {
+    name,
+    notes,
+    serviceType,
+    serviceLabel: serviceType === 'delivery' ? 'Delivery' : 'Retirada na loja',
+    items: state.cart,
+    total: cartTotal(),
+    address: {
+      street: String(formData.get('delivery-street') || '').trim(),
+      number: String(formData.get('delivery-number') || '').trim(),
+      neighborhood: String(formData.get('delivery-neighborhood') || '').trim(),
+      reference: String(formData.get('delivery-reference') || '').trim()
+    }
+  };
+
+  if (serviceType === 'delivery') {
+    if (!payload.address.street || !payload.address.number || !payload.address.neighborhood) {
+      showToast('Preencha rua, número e bairro para o delivery.');
+      return;
+    }
+  }
+
+  const message = buildWhatsAppMessage(payload);
+  const url = `https://wa.me/${STORE.whatsappDigits}?text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank', 'noopener');
+  els.checkoutDialog.close();
 }
 
-window.addEventListener('storage', e => {
-  if (e.key?.includes('acai-da-bea-demo-store')) refresh();
-});
-window.addEventListener('acai-demo-data-changed', refresh);
+function bindContactLinks() {
+  const genericMessage = 'Olá! Gostaria de fazer um pedido no Açaí da Bea.';
+  const waUrl = `https://wa.me/${STORE.whatsappDigits}?text=${encodeURIComponent(genericMessage)}`;
+  els.heroWhatsapp.href = waUrl;
+  els.contactWhatsapp.href = waUrl;
+  els.contactInstagram.href = STORE.instagramUrl;
+  els.contactMaps.href = STORE.mapsUrl;
+}
 
-refresh();
+function init() {
+  renderProducts();
+  renderCart();
+  bindContactLinks();
+
+  els.productForm.addEventListener('submit', handleProductSubmit);
+  els.cartButton.addEventListener('click', openCart);
+  els.floatingCart.addEventListener('click', openCart);
+  els.closeCart.addEventListener('click', closeCart);
+  els.backdrop.addEventListener('click', closeCart);
+  els.checkoutButton.addEventListener('click', () => {
+    closeCart();
+    els.checkoutDialog.showModal();
+  });
+  els.closeCheckout.addEventListener('click', () => els.checkoutDialog.close());
+  els.checkoutForm.addEventListener('submit', handleCheckoutSubmit);
+  els.checkoutForm.querySelectorAll('input[name="service-type"]').forEach(input => {
+    input.addEventListener('change', toggleDeliveryFields);
+  });
+}
+
+init();

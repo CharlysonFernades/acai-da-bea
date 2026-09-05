@@ -3,61 +3,64 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#4a0d43">
-  <meta name="description" content="Cardápio digital do Açaí da Bea. Escolha seu açaí, personalize e envie o pedido pronto no WhatsApp.">
+  <meta name="theme-color" content="#5f0f57">
+  <meta name="description" content="Cardápio digital do Açaí da Bea. Monte seu pedido e envie tudo formatado no WhatsApp.">
   <title>Açaí da Bea • Cardápio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#inicio" aria-label="Açaí da Bea - início">
-      <span class="brand-mark" aria-hidden="true">B</span>
-      <span>
-        <strong id="brand-name">Açaí da Bea</strong>
-        <small>Açaiteria</small>
-      </span>
-    </a>
+    <div class="container topbar-inner">
+      <a class="brand" href="#inicio" aria-label="Açaí da Bea - início">
+        <span class="brand-mark" aria-hidden="true">B</span>
+        <span class="brand-copy">
+          <strong>Açaí da Bea</strong>
+          <small>AÇAIteria</small>
+        </span>
+      </a>
 
-    <nav aria-label="Navegação principal">
-      <a href="#inicio">Início</a>
-      <a href="#cardapio">Cardápio</a>
-      <a href="#contato">Contato</a>
-    </nav>
+      <nav class="main-nav" aria-label="Navegação principal">
+        <a href="#inicio">Início</a>
+        <a href="#cardapio">Cardápio</a>
+        <a href="#contato">Contato</a>
+      </nav>
 
-    <button class="cart-button" id="cart-button" type="button" aria-label="Abrir carrinho">
-      <span aria-hidden="true">🛒</span>
-      <span class="cart-label">Pedido</span>
-      <b id="cart-count">0</b>
-    </button>
+      <button class="cart-button" id="cart-button" type="button" aria-label="Abrir pedido">
+        <span aria-hidden="true">🛒</span>
+        <span>Pedido</span>
+        <b id="cart-count">0</b>
+      </button>
+    </div>
   </header>
 
   <main>
     <section class="hero" id="inicio">
-      <div class="hero-copy">
-        <span class="eyebrow">AÇAÍ DA BEA</span>
-        <h1>Seu açaí, do seu jeito.</h1>
-        <p id="hero-tagline">Ei, coloca + sabor no seu dia a dia Aê! 💜</p>
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow">AÇAÍ DA BEA • LOJA A</span>
+          <h1>Monte seu pedido de um jeito simples, bonito e rápido.</h1>
+          <p>Escolha seus produtos, personalize com cremes e adicionais e envie o pedido pronto direto para o WhatsApp da loja.</p>
 
-        <div class="hero-actions">
-          <a class="button primary" href="#cardapio">Ver cardápio</a>
-          <a class="button ghost" id="hero-whatsapp" target="_blank" rel="noopener">Pedir no WhatsApp</a>
+          <div class="hero-actions">
+            <a class="button primary" href="#cardapio">Ver cardápio</a>
+            <a class="button ghost" id="hero-whatsapp" href="#" target="_blank" rel="noopener noreferrer">Pedir no WhatsApp</a>
+          </div>
+
+          <div class="hero-pills">
+            <span>✨ Monte seu pedido</span>
+            <span>🕔 Terça a domingo • 17h às 22h</span>
+          </div>
         </div>
 
-        <div class="hero-pills">
-          <span>✨ Monte seu pedido</span>
-          <span>📍 Google Maps</span>
-          <span>🕔 Terça a sábado • 17h às 22h</span>
-        </div>
-      </div>
-
-      <div class="hero-art">
-        <img src="assets/images/acai-330.webp" alt="Açaí do Açaí da Bea com frutas e granola" width="960" height="720">
-        <div class="hero-price">
-          <small>A partir de</small>
-          <strong>R$ 14,84</strong>
+        <div class="hero-art card-surface">
+          <img src="assets/images/hero-acai.webp" alt="Bowl de açaí do Açaí da Bea com frutas e granola" width="1400" height="980" loading="eager">
+          <div class="hero-price">
+            <small>A partir de</small>
+            <strong>R$ 14,84</strong>
+          </div>
         </div>
       </div>
     </section>
@@ -65,15 +68,15 @@
     <section class="section container intro-strip" aria-label="Resumo da loja">
       <article>
         <strong>Pedido fácil</strong>
-        <p>Escolha o produto, personalize e mande o pedido pronto.</p>
+        <p>O cliente escolhe, personaliza e envia o pedido pronto em poucos toques.</p>
       </article>
       <article>
         <strong>Atendimento direto</strong>
-        <p>O fechamento é feito pelo WhatsApp da loja.</p>
+        <p>A confirmação da retirada ou do delivery fica organizada dentro do WhatsApp.</p>
       </article>
       <article>
         <strong>Funcionamento</strong>
-        <p>Terça a sábado, das 17:00 às 22:00.</p>
+        <p>Terça a domingo, das 17:00 às 22:00.</p>
       </article>
     </section>
 
@@ -83,8 +86,9 @@
           <span class="eyebrow">CARDÁPIO</span>
           <h2>Escolha seu favorito</h2>
         </div>
-        <p>Escolha seu tamanho, personalize e envie o pedido pronto pelo WhatsApp.</p>
+        <p>Versão inicial do cardápio da Loja A. Os sabores, cremes e coberturas podem ser ajustados depois no painel administrativo.</p>
       </div>
+
       <div class="product-grid" id="product-grid" aria-live="polite"></div>
     </section>
 
@@ -92,28 +96,29 @@
       <div class="container experience-grid">
         <div>
           <span class="eyebrow light">COMO FUNCIONA</span>
-          <h2>Rápido para o cliente. Prático para a loja.</h2>
+          <h2>O site faz a parte chata. A loja recebe o pedido mais organizado.</h2>
         </div>
+
         <div class="steps">
           <article>
             <b>1</b>
             <div>
               <strong>Escolha o produto</strong>
-              <p>Veja as opções do cardápio e toque em escolher.</p>
+              <p>Veja os tamanhos, o preço e as fotos reais dos produtos.</p>
             </div>
           </article>
           <article>
             <b>2</b>
             <div>
               <strong>Personalize do seu jeito</strong>
-              <p>Marque os cremes, adicionais e coberturas disponíveis.</p>
+              <p>Selecione os cremes, adicionais e coberturas disponíveis para cada item.</p>
             </div>
           </article>
           <article>
             <b>3</b>
             <div>
-              <strong>Envie no WhatsApp</strong>
-              <p>A mensagem vai formatada, pronta para a loja atender melhor.</p>
+              <strong>Finalize no WhatsApp</strong>
+              <p>A mensagem sai formatada de forma mais limpa e profissional para facilitar o atendimento.</p>
             </div>
           </article>
         </div>
@@ -126,34 +131,34 @@
           <span class="eyebrow">CONTATO</span>
           <h2>Fale com o Açaí da Bea</h2>
         </div>
-        <p>O pedido, a confirmação de disponibilidade e a retirada são combinados diretamente no WhatsApp.</p>
+        <p>Para esta versão inicial, os pedidos são atendidos pelo WhatsApp. O cliente combina a retirada na loja ou, futuramente, o delivery.</p>
       </div>
 
       <div class="contact-grid">
-        <a class="contact-card" id="contact-whatsapp" target="_blank" rel="noopener">
+        <a class="contact-card" id="contact-whatsapp" target="_blank" rel="noopener noreferrer">
           <span>💬</span>
           <div>
             <small>WhatsApp</small>
-            <strong id="whatsapp-display"></strong>
+            <strong id="whatsapp-display">+55 85 92145-5990</strong>
             <p>Enviar pedido ou tirar dúvidas</p>
           </div>
         </a>
 
-        <a class="contact-card" id="contact-instagram" target="_blank" rel="noopener">
+        <a class="contact-card" id="contact-instagram" target="_blank" rel="noopener noreferrer">
           <span>◎</span>
           <div>
             <small>Instagram</small>
-            <strong id="instagram-display"></strong>
+            <strong>@acaibea</strong>
             <p>Ver novidades da loja</p>
           </div>
         </a>
 
-        <a class="contact-card" id="contact-maps" target="_blank" rel="noopener">
+        <a class="contact-card" id="contact-maps" target="_blank" rel="noopener noreferrer">
           <span>📍</span>
           <div>
             <small>Localização</small>
             <strong>Google Maps</strong>
-            <p>Abrir localização no Google Maps</p>
+            <p>Abrir localização da Loja A</p>
           </div>
         </a>
 
@@ -161,7 +166,7 @@
           <span>🕔</span>
           <div>
             <small>Horário</small>
-            <strong>Terça a sábado</strong>
+            <strong>Terça a domingo</strong>
             <p>Das 17:00 até as 22:00</p>
           </div>
         </div>
@@ -173,9 +178,9 @@
     <div class="container footer-inner">
       <div>
         <strong>Açaí da Bea</strong>
-        <p>Cardápio digital</p>
+        <p>Protótipo inicial do cardápio digital da Loja A.</p>
       </div>
-      <span class="footer-note">Atendimento via WhatsApp</span>
+      <span class="footer-note">Atendimento via WhatsApp • Terça a domingo • 17h às 22h</span>
     </div>
   </footer>
 
@@ -190,20 +195,30 @@
     <div class="drawer-head">
       <div>
         <small>SEU PEDIDO</small>
-        <h2>Carrinho</h2>
+        <h2>Pedido</h2>
       </div>
       <button id="close-cart" type="button" aria-label="Fechar carrinho">×</button>
     </div>
+
     <div class="drawer-body" id="cart-items"></div>
+
     <div class="drawer-foot" id="cart-footer">
       <div class="total-row">
         <span>Total</span>
         <strong id="cart-total">R$ 0,00</strong>
       </div>
       <button class="button primary full" id="checkout-button" type="button">Finalizar pedido</button>
-      <small>Você revisa os dados e depois envia tudo pronto no WhatsApp.</small>
+      <small>Você revisa e o site abre o WhatsApp com a mensagem pronta.</small>
     </div>
   </aside>
+
+  <div class="floating-cart hidden" id="floating-cart-wrap">
+    <button id="floating-cart" type="button">
+      <span>Ver pedido</span>
+      <strong id="floating-cart-text">0 itens • R$ 0,00</strong>
+    </button>
+  </div>
+
   <div class="backdrop" id="backdrop" hidden></div>
 
   <dialog class="checkout-dialog" id="checkout-dialog">
@@ -211,15 +226,52 @@
       <button class="dialog-close" type="button" id="close-checkout" aria-label="Fechar">×</button>
       <span class="eyebrow">FINALIZAR</span>
       <h2>Enviar pedido no WhatsApp</h2>
-      <p>Digite seu nome para montar uma mensagem organizada e mais bonita para a loja.</p>
-      <label>Seu nome<input id="customer-name" autocomplete="name" maxlength="60" required placeholder="Ex.: Maria"></label>
-      <label>Observações<textarea id="customer-notes" maxlength="300" rows="3" placeholder="Ex.: confirmar retirada, sem granola..."></textarea></label>
+      <p>Preencha os dados abaixo para montar a mensagem final do pedido.</p>
+
+      <label>
+        Seu nome
+        <input id="customer-name" name="customer-name" autocomplete="name" maxlength="60" required placeholder="Ex.: Maria">
+      </label>
+
+      <fieldset class="choice-field">
+        <legend>Tipo de atendimento</legend>
+        <label class="choice-pill"><input type="radio" name="service-type" value="retirada" checked> Retirada na loja</label>
+        <label class="choice-pill"><input type="radio" name="service-type" value="delivery"> Delivery</label>
+      </fieldset>
+
+      <div id="delivery-fields" hidden>
+        <label>
+          Rua
+          <input id="delivery-street" name="delivery-street" maxlength="80" placeholder="Ex.: Rua Exemplo">
+        </label>
+        <div class="two-col">
+          <label>
+            Número
+            <input id="delivery-number" name="delivery-number" maxlength="20" placeholder="123">
+          </label>
+          <label>
+            Bairro
+            <input id="delivery-neighborhood" name="delivery-neighborhood" maxlength="50" placeholder="Ex.: Centro">
+          </label>
+        </div>
+        <label>
+          Referência
+          <input id="delivery-reference" name="delivery-reference" maxlength="80" placeholder="Opcional">
+        </label>
+      </div>
+
+      <label>
+        Observações gerais
+        <textarea id="customer-notes" name="customer-notes" maxlength="300" rows="3" placeholder="Ex.: sem pressa, confirmar disponibilidade..."></textarea>
+      </label>
+
       <button class="button primary full" type="submit">Montar mensagem</button>
-      <small class="form-note">Nenhum dado pessoal é salvo neste site.</small>
+      <small class="form-note">Os dados ficam apenas no navegador para esta demonstração.</small>
     </form>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
