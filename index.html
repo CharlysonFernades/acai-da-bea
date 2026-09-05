@@ -2,367 +2,127 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#210019">
-  <meta name="color-scheme" content="light">
-  <title>Açaí da Bea | Cardápio digital e pedidos pelo WhatsApp</title>
-  <meta name="description" content="Monte seu Açaí da Bea do seu jeito, veja tamanhos e preços e envie seu pedido completo pelo WhatsApp.">
-  <meta name="robots" content="index,follow">
-
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Açaí da Bea | Cardápio digital">
-  <meta property="og:description" content="Escolha seu açaí, personalize e envie o pedido pronto pelo WhatsApp.">
-  <meta property="og:image" content="assets/images/hero-acai.jpg">
-  <meta property="og:locale" content="pt_BR">
-
-  <link rel="icon" href="assets/icons/favicon.svg" type="image/svg+xml">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#4b0d63">
+  <meta name="description" content="Cardápio digital demonstrativo do Açaí da Bea. Consulte produtos e faça seu pedido pelo WhatsApp.">
+  <title>Açaí da Bea • Cardápio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/v2.css">
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "IceCreamShop",
-    "name": "Açaí da Bea",
-    "servesCuisine": "Açaí",
-    "telephone": "+5581974010159",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "R. Ipu, 2102",
-      "addressLocality": "Caucaia",
-      "addressRegion": "CE",
-      "postalCode": "61634-110",
-      "addressCountry": "BR"
-    },
-    "sameAs": ["https://www.instagram.com/acaidabea_/"]
-  }
-  </script>
 </head>
 <body>
-  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
-  <div id="live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-
-  <header class="site-header">
-    <div class="container header-inner">
-      <a class="brand" href="#inicio" aria-label="Açaí da Bea - início">
-        <img class="brand-mark" src="assets/images/logo.jpg" width="80" height="80" alt="Logo Açaí da Bea">
-        <span>Açaí da Bea</span>
-      </a>
-
-      <nav class="nav-desktop" aria-label="Navegação principal">
-        <a href="#inicio">Início</a>
-        <a href="#cardapio">Cardápio</a>
-        <a href="#sobre">Sobre</a>
-        <a href="#localizacao">Localização</a>
-        <a href="#contato">Contato</a>
-      </nav>
-
-      <div class="header-actions">
-        <button class="button button-small button-secondary cart-button" type="button" data-open-cart>
-          Pedido <span id="cart-count" class="cart-count" hidden>0</span>
-        </button>
-        <button id="mobile-menu-button" class="mobile-menu-button" type="button" aria-expanded="false" aria-controls="mobile-menu-panel" aria-label="Abrir menu">
-          <span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span>
-        </button>
-      </div>
-    </div>
-    <nav id="mobile-menu-panel" class="mobile-menu-panel" aria-label="Navegação móvel" hidden>
-      <a href="#inicio">Início</a>
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="Açaí da Bea - início">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span><strong>Açaí da Bea</strong><small>Açaiteria</small></span>
+    </a>
+    <nav aria-label="Navegação principal">
       <a href="#cardapio">Cardápio</a>
-      <a href="#sobre">Sobre</a>
-      <a href="#localizacao">Localização</a>
       <a href="#contato">Contato</a>
     </nav>
+    <button class="cart-button" id="cart-button" type="button" aria-label="Abrir carrinho">
+      <span aria-hidden="true">🛒</span><span class="cart-label">Pedido</span><b id="cart-count">0</b>
+    </button>
   </header>
 
-  <main id="conteudo">
-    <section id="inicio" class="hero">
-      <div class="container hero-inner">
-        <div class="hero-copy">
-          <span class="eyebrow">Sorveteria • açaí do seu jeito</span>
-          <h1>Açaí da Bea</h1>
-          <p>Escolha o tamanho, personalize com complementos, caldas e frutas e envie seu pedido completo pelo WhatsApp.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#cardapio">Fazer meu pedido</a>
-            <a class="button button-secondary" href="#cardapio">Ver cardápio</a>
-          </div>
-          <div class="hero-badges" aria-label="Destaques">
-            <span class="badge">🍇 Tradicional e trufado</span>
-            <span class="badge">💬 Pedido pronto no WhatsApp</span>
-            <span class="badge">🛵 Delivery</span>
-          </div>
+  <main>
+    <section class="hero" id="inicio">
+      <div class="hero-copy">
+        <span class="eyebrow">AÇAÍ DA BEA</span>
+        <h1>Seu açaí, do seu jeito.</h1>
+        <p id="hero-tagline">Ei, coloca + sabor no seu dia a dia Aê! 💜</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#cardapio">Ver cardápio</a>
+          <a class="button ghost" id="hero-whatsapp" target="_blank" rel="noopener">Chamar no WhatsApp</a>
         </div>
+        <div class="hero-pills">
+          <span>💬 Pedido pelo WhatsApp</span>
+          <span>📍 Localização no Maps</span>
+          <span>🕔 Terça a sábado • 17h às 22h</span>
+        </div>
+      </div>
+      <div class="hero-art" aria-label="Destaque do cardápio">
+        <img src="assets/images/acai-330.svg" alt="Ilustração de açaí" width="800" height="600">
+        <div class="hero-price"><small>A partir de</small><strong>R$ 14,84</strong></div>
+      </div>
+    </section>
 
-        <div class="hero-card" aria-label="Imagem do cardápio do Açaí da Bea">
-          <img src="assets/images/hero-acai.jpg" width="920" height="480" alt="Açaí tradicional e açaí premium trufado do Açaí da Bea">
-          <div class="hero-sticker">A partir de R$ 16,90</div>
+    <section class="notice container" aria-label="Aviso do protótipo">
+      <span class="notice-icon" aria-hidden="true">i</span>
+      <p><strong>Versão demonstrativa:</strong> os produtos, preços e limites de personalização vieram do catálogo enviado. As opções de cremes, adicionais e coberturas são genéricas apenas para demonstrar o funcionamento e serão confirmadas com a loja.</p>
+    </section>
+
+    <section class="section container" id="cardapio">
+      <div class="section-heading">
+        <div><span class="eyebrow">CARDÁPIO</span><h2>Escolha o seu</h2></div>
+        <p>Monte o pedido, revise o carrinho e envie tudo pronto no WhatsApp.</p>
+      </div>
+      <div class="product-grid" id="product-grid" aria-live="polite"></div>
+    </section>
+
+    <section class="experience">
+      <div class="container experience-grid">
+        <div>
+          <span class="eyebrow light">COMO FUNCIONA</span>
+          <h2>Rápido para o cliente. Simples para a loja.</h2>
+        </div>
+        <div class="steps">
+          <article><b>1</b><div><strong>Escolha o tamanho</strong><p>Veja o cardápio e selecione o produto.</p></div></article>
+          <article><b>2</b><div><strong>Personalize</strong><p>Marque cremes, adicionais e coberturas disponíveis.</p></div></article>
+          <article><b>3</b><div><strong>Envie no WhatsApp</strong><p>O site monta a mensagem para finalizar diretamente com a loja.</p></div></article>
         </div>
       </div>
     </section>
 
-    <section class="trust-strip" aria-label="Informações rápidas">
-      <div class="container trust-inner">
-        <div class="trust-item"><span class="trust-icon">📲</span><div><strong>Pedido sem cadastro</strong><span>Monte e envie direto pelo WhatsApp.</span></div></div>
-        <div class="trust-item"><span class="trust-icon">🥣</span><div><strong>Personalize do seu jeito</strong><span>Complementos, caldas, frutas e trufados.</span></div></div>
-        <div class="trust-item"><span class="trust-icon">🛵</span><div><strong>Também no iFood</strong><span>Loja disponível na plataforma.</span></div></div>
+    <section class="section container" id="contato">
+      <div class="section-heading">
+        <div><span class="eyebrow">CONTATO</span><h2>Fale com o Açaí da Bea</h2></div>
+        <p>Atendimento de terça a sábado, das 17:00 às 22:00. A loja ainda não possui delivery próprio; pedidos e disponibilidade são combinados diretamente pelo WhatsApp.</p>
       </div>
-    </section>
-
-    <section id="cardapio" class="section">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">Cardápio</span>
-          <h2>Escolha seu açaí</h2>
-          <p>Preços e opções abaixo foram organizados a partir do cardápio original fornecido. O adicional de morango é de R$ 2,00.</p>
-        </div>
-        <div id="menu-grid"></div>
-      </div>
-    </section>
-
-    <section class="section section-soft">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">Monte do seu jeito</span>
-          <h2>O que você pode escolher</h2>
-        </div>
-        <div class="builder-grid">
-          <article class="builder-card">
-            <h3>Complementos</h3>
-            <p>Escolha até 4.</p>
-            <ul class="builder-list">
-              <li>Leite em pó</li><li>Granola</li><li>Farelo de amendoim</li><li>Paçoca</li><li>Jujuba</li><li>Ovomaltine em pó</li>
-            </ul>
-          </article>
-          <article class="builder-card">
-            <h3>Caldas</h3>
-            <p>Escolha até 2.</p>
-            <ul class="builder-list">
-              <li>Leite condensado</li><li>Mel</li><li>Chocolate</li><li>Morango</li>
-            </ul>
-          </article>
-          <article class="builder-card">
-            <h3>Frutas</h3>
-            <p>Escolha 1.</p>
-            <ul class="builder-list">
-              <li>Banana</li><li>Manga</li><li>Morango + R$ 2,00</li>
-            </ul>
-          </article>
-          <article class="builder-card gold">
-            <h3>Cremes trufados</h3>
-            <p>1 incluso no Açaí Premium Trufado.</p>
-            <ul class="builder-list"><li>Creme de Nutella</li><li>Creme de Ovomaltine</li></ul>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section id="ifood-section" class="section" hidden>
-      <div class="container">
-        <div class="ifood-callout">
-          <div>
-            <span class="eyebrow">Outra forma de pedir</span>
-            <h3>O Açaí da Bea também está no iFood</h3>
-            <p>Se preferir, o cliente também pode abrir a loja oficial no iFood pelo botão abaixo.</p>
-          </div>
-          <a id="ifood-link" class="button button-primary" href="#" target="_blank" rel="noopener noreferrer" hidden>Ver no iFood</a>
-        </div>
-      </div>
-    </section>
-
-    <section id="sobre" class="section section-soft">
-      <div class="container about-grid">
-        <div class="about-photo">
-          <img src="assets/images/menu-original.jpg" width="921" height="2048" loading="lazy" decoding="async" alt="Cardápio original do Açaí da Bea">
-        </div>
-        <div class="about-copy">
-          <span class="eyebrow">Sobre</span>
-          <h2>Açaí tradicional ou premium trufado, personalizado por você.</h2>
-          <p>O Açaí da Bea trabalha com opções de 300 ml, 400 ml e 500 ml. O cardápio permite combinar complementos, caldas e frutas; na versão premium trufada, o cliente também escolhe um creme trufado.</p>
-          <p>Nesta página não incluímos história, tempo de funcionamento, premiações ou outras informações que não foram confirmadas.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="localizacao" class="section section-soft">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">Localização</span>
-          <h2>Como chegar</h2>
-        </div>
-        <div class="location-card">
-          <div>
-            <h3 id="address-text">Endereço oficial ainda não configurado.</h3>
-            <p>Endereço confirmado pelo Google Maps. Toque no botão abaixo para abrir a rota.</p>
-            <p><strong>Horário:</strong> <span id="hours-text">Horário de funcionamento a confirmar.</span></p>
-            <a id="maps-link" class="button button-primary" href="#" target="_blank" rel="noopener noreferrer" hidden>Abrir no Google Maps</a>
-          </div>
-          <div class="location-placeholder" role="img" aria-label="Localização do Açaí da Bea em Tabapuazinho, Caucaia">
-            <div><strong>📍 Açaí da Bea</strong><br>R. Ipu, 2102<br>Tabapuazinho • Caucaia - CE</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="contato" class="section section-dark">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">Contato</span>
-          <h2>Fale com o Açaí da Bea</h2>
-        </div>
-        <div class="contact-grid">
-          <a class="contact-card" data-phone-link href="tel:+5581974010159"><small>Telefone</small><strong data-phone-display>(81) 97401-0159</strong><p>Toque para ligar.</p></a>
-          <a class="contact-card" href="https://wa.me/5581974010159" target="_blank" rel="noopener noreferrer"><small>WhatsApp</small><strong data-whatsapp-display>(81) 97401-0159</strong><p>Contato e pedidos.</p></a>
-          <a class="contact-card" data-instagram-link href="https://www.instagram.com/acaidabea_/" target="_blank" rel="noopener noreferrer"><small>Instagram</small><strong data-instagram-handle>@acaidabea_</strong><p>Ver perfil oficial informado no cardápio.</p></a>
-          <div class="contact-card"><small>Horário</small><strong>A confirmar</strong><p>Configure quando o horário oficial for confirmado.</p></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section original-menu">
-      <div class="container">
-        <div class="section-heading compact"><span class="eyebrow">Referência</span><h2>Cardápio original</h2></div>
-        <details>
-          <summary>Ver imagem original do cardápio</summary>
-          <img src="assets/images/menu-original.jpg" width="921" height="2048" loading="lazy" decoding="async" alt="Cardápio original completo do Açaí da Bea com tamanhos, preços e opções de personalização">
-        </details>
+      <div class="contact-grid">
+        <a class="contact-card" id="contact-whatsapp" target="_blank" rel="noopener"><span>💬</span><div><small>WhatsApp</small><strong id="whatsapp-display"></strong><p>Enviar pedido ou tirar dúvidas</p></div></a>
+        <a class="contact-card" id="contact-instagram" target="_blank" rel="noopener"><span>◎</span><div><small>Instagram</small><strong id="instagram-display"></strong><p>Conhecer o perfil da loja</p></div></a>
+        <a class="contact-card" id="contact-maps" target="_blank" rel="noopener"><span>📍</span><div><small>Localização</small><strong>Google Maps</strong><p>Abrir localização da loja</p></div></a>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <a class="brand" href="#inicio"><img class="brand-mark" src="assets/images/logo.jpg" width="80" height="80" alt=""><span>Açaí da Bea</span></a>
-          <p>Cardápio digital com personalização de produtos e envio do pedido completo pelo WhatsApp.</p>
-        </div>
-        <div class="footer-links">
-          <a data-phone-link href="tel:+5581974010159"><span data-phone-display>(81) 97401-0159</span></a>
-          <a data-instagram-link href="https://www.instagram.com/acaidabea_/" target="_blank" rel="noopener noreferrer"><span data-instagram-handle>@acaidabea_</span></a>
-          <span>Endereço: <span data-address-display>R. Ipu, 2102 · Tabapuazinho · Caucaia - CE, 61634-110</span></span>
-          <span>Horário: <span data-hours-display>[ADICIONAR HORÁRIO]</span></span>
-        </div>
-      </div>
-      <div class="footer-bottom">© <span id="year"></span> Açaí da Bea. Site de cardápio digital.</div>
-    </div>
+  <footer>
+    <div class="container footer-inner"><div><strong>Açaí da Bea</strong><p>Cardápio digital • Terça a sábado, 17h às 22h</p></div></div>
   </footer>
 
-  <a id="general-whatsapp" class="whatsapp-float" href="#" target="_blank" rel="noopener noreferrer" aria-label="Falar com o Açaí da Bea pelo WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.52 3.48A11.78 11.78 0 0 0 12.07 0C5.53 0 .2 5.32.2 11.86c0 2.09.55 4.13 1.6 5.92L0 24l6.39-1.68a11.83 11.83 0 0 0 5.68 1.45h.01c6.54 0 11.87-5.32 11.87-11.86 0-3.17-1.23-6.15-3.43-8.43Zm-8.45 18.3h-.01a9.83 9.83 0 0 1-5-1.37l-.36-.21-3.79 1 1.01-3.69-.23-.38a9.81 9.81 0 0 1-1.51-5.27c0-5.43 4.42-9.85 9.87-9.85 2.63 0 5.11 1.02 6.97 2.89a9.77 9.77 0 0 1 2.89 6.96c0 5.43-4.43 9.85-9.84 9.85Zm5.4-7.38c-.29-.14-1.72-.85-1.99-.95-.27-.1-.46-.14-.65.14-.19.29-.75.95-.92 1.14-.17.19-.34.22-.63.07-.29-.14-1.22-.45-2.33-1.44-.86-.77-1.45-1.73-1.62-2.02-.17-.29-.02-.45.12-.6.13-.13.29-.34.43-.51.14-.17.19-.29.29-.48.1-.19.05-.36-.02-.5-.07-.14-.65-1.56-.9-2.14-.24-.57-.48-.49-.65-.49h-.55c-.19 0-.5.07-.77.36-.27.29-1.03 1-1.03 2.43 0 1.43 1.05 2.81 1.19 3 .14.19 2.05 3.12 4.96 4.38.69.3 1.24.48 1.66.61.7.22 1.34.19 1.85.12.56-.08 1.72-.7 1.96-1.38.24-.68.24-1.26.17-1.38-.07-.12-.26-.19-.55-.33Z"/></svg><span class="sr-only">Falar no WhatsApp</span></a>
-  <button id="mobile-cart" class="mobile-cart" type="button" data-open-cart hidden><span id="mobile-cart-text">Ver pedido</span></button>
+  <dialog class="product-dialog" id="product-dialog">
+    <form method="dialog" class="dialog-shell" id="product-form">
+      <button class="dialog-close" value="cancel" aria-label="Fechar">×</button>
+      <div id="product-dialog-content"></div>
+    </form>
+  </dialog>
 
-  <div id="cart-backdrop" class="cart-backdrop" hidden></div>
-  <aside id="cart-drawer" class="cart-drawer" aria-hidden="true" aria-labelledby="cart-title">
-    <div class="cart-header">
-      <h2 id="cart-title">Seu pedido</h2>
-      <button class="icon-button" type="button" data-close-cart aria-label="Fechar pedido">×</button>
-    </div>
-    <div id="cart-items" class="cart-body"></div>
-    <div id="cart-actions" class="cart-footer" hidden>
-      <div class="cart-total-row"><span>Total dos produtos</span><strong id="cart-total">R$ 0,00</strong></div>
-      <button id="open-checkout" class="button button-primary button-wide" type="button">Finalizar pedido</button>
-      <button id="clear-cart" class="text-button danger button-wide" type="button">Limpar pedido</button>
+  <aside class="cart-drawer" id="cart-drawer" aria-hidden="true" aria-label="Carrinho">
+    <div class="drawer-head"><div><small>SEU PEDIDO</small><h2>Carrinho</h2></div><button id="close-cart" type="button" aria-label="Fechar carrinho">×</button></div>
+    <div class="drawer-body" id="cart-items"></div>
+    <div class="drawer-foot" id="cart-footer">
+      <div class="total-row"><span>Total</span><strong id="cart-total">R$ 0,00</strong></div>
+      <button class="button primary full" id="checkout-button" type="button">Continuar no WhatsApp</button>
+      <small>O pedido só é enviado quando você confirmar no WhatsApp.</small>
     </div>
   </aside>
+  <div class="backdrop" id="backdrop" hidden></div>
 
-  <dialog id="checkout-dialog" class="checkout-dialog" aria-labelledby="checkout-title">
-    <div class="checkout-dialog-header">
-      <div>
-        <span class="eyebrow">Finalização</span>
-        <h2 id="checkout-title">Finalizar pedido</h2>
-        <p>Revise o resumo, informe os dados necessários e abra o WhatsApp com o pedido pronto.</p>
-      </div>
-      <button class="icon-button" type="button" data-close-checkout aria-label="Fechar finalização">×</button>
-    </div>
-
-    <div class="checkout-dialog-content">
-      <aside class="checkout-summary-card">
-        <span class="eyebrow">Seu pedido</span>
-        <h3>Resumo</h3>
-        <p id="checkout-summary" class="checkout-summary">Adicione itens ao carrinho para finalizar.</p>
-        <button class="button button-ghost button-wide" type="button" data-edit-cart>Voltar ao carrinho</button>
-      </aside>
-
-      <form id="checkout-form" class="checkout-form-card" novalidate>
-        <div class="form-grid">
-          <div class="field">
-            <label for="customer-name">Nome</label>
-            <input id="customer-name" name="customerName" type="text" autocomplete="name" maxlength="80" required placeholder="Seu nome">
-          </div>
-
-          <fieldset>
-            <legend>Tipo do pedido</legend>
-            <div id="order-type-options" class="choice-row"></div>
-          </fieldset>
-
-          <div id="delivery-fields" class="form-grid" hidden>
-            <div class="form-two">
-              <div class="field"><label for="street">Rua</label><input id="street" name="street" type="text" autocomplete="street-address" maxlength="120" data-delivery-required></div>
-              <div class="field"><label for="number">Número</label><input id="number" name="number" type="text" inputmode="text" maxlength="20" data-delivery-required></div>
-            </div>
-            <div class="field"><label for="neighborhood">Bairro</label><input id="neighborhood" name="neighborhood" type="text" maxlength="80" data-delivery-required></div>
-            <div class="form-two">
-              <div class="field"><label for="complement">Complemento <span aria-hidden="true">(opcional)</span></label><input id="complement" name="complement" type="text" maxlength="100"></div>
-              <div class="field"><label for="reference">Ponto de referência <span aria-hidden="true">(opcional)</span></label><input id="reference" name="reference" type="text" maxlength="100"></div>
-            </div>
-            <p class="field-note">A taxa de entrega ainda não foi confirmada e será marcada como “a confirmar” na mensagem.</p>
-          </div>
-
-          <fieldset id="payment-fieldset">
-            <legend>Forma de pagamento</legend>
-            <div id="payment-options" class="choice-row"></div>
-          </fieldset>
-
-          <div id="cash-change-wrap" class="field" hidden>
-            <label for="change-for">Troco para quanto? <span aria-hidden="true">(opcional)</span></label>
-            <input id="change-for" name="changeFor" type="text" inputmode="decimal" maxlength="24" placeholder="Ex.: R$ 100,00">
-          </div>
-
-          <div class="field">
-            <label for="general-note">Observações gerais <span aria-hidden="true">(opcional)</span></label>
-            <textarea id="general-note" name="generalNote" maxlength="240" placeholder="Alguma observação sobre o pedido?"></textarea>
-          </div>
-
-          <p id="checkout-notice" class="notice" tabindex="-1" aria-live="assertive"></p>
-          <button id="send-whatsapp" class="button button-primary button-wide" type="button">Enviar pedido pelo WhatsApp</button>
-        </div>
-      </form>
-    </div>
-  </dialog>
-
-  <dialog id="customizer" class="customizer-dialog" aria-labelledby="customizer-title">
-    <div class="customizer-header">
-      <div><h2 id="customizer-title">Personalizar</h2><span id="customizer-price" class="customizer-price"></span></div>
-      <button class="icon-button" type="button" data-close-customizer aria-label="Fechar personalização">×</button>
-    </div>
-    <form id="customizer-form" class="customizer-content" method="dialog">
-      <fieldset class="option-group">
-        <legend>Complementos</legend><small>Escolha até 4.</small>
-        <div id="complements-options" class="chip-grid"></div>
-      </fieldset>
-      <fieldset class="option-group">
-        <legend>Caldas</legend><small>Escolha até 2.</small>
-        <div id="syrups-options" class="chip-grid"></div>
-      </fieldset>
-      <fieldset class="option-group">
-        <legend>Fruta</legend><small>Escolha 1. Morango acrescenta R$ 2,00.</small>
-        <div id="fruits-options" class="chip-grid"></div>
-      </fieldset>
-      <fieldset id="creams-group" class="option-group" hidden>
-        <legend>Creme trufado</legend><small>Escolha 1.</small>
-        <div id="creams-options" class="chip-grid"></div>
-      </fieldset>
-      <div class="field">
-        <label for="product-note">Observação do item <span aria-hidden="true">(opcional)</span></label>
-        <textarea id="product-note" maxlength="180" placeholder="Ex.: sem leite condensado"></textarea>
-      </div>
+  <dialog class="checkout-dialog" id="checkout-dialog">
+    <form class="checkout-card" id="checkout-form">
+      <button class="dialog-close" type="button" id="close-checkout" aria-label="Fechar">×</button>
+      <span class="eyebrow">FINALIZAR</span><h2>Quase lá 👋</h2>
+      <p>Informe seu nome. A loja combina disponibilidade e atendimento diretamente pelo WhatsApp.</p>
+      <label>Seu nome<input id="customer-name" autocomplete="name" maxlength="60" required placeholder="Ex.: Maria"></label>
+      <label>Observações<textarea id="customer-notes" maxlength="300" rows="3" placeholder="Ex.: sem granola, confirmar retirada..."></textarea></label>
+      <button class="button primary full" type="submit">Montar mensagem no WhatsApp</button>
+      <small class="form-note">Nenhum dado pessoal é salvo por este protótipo.</small>
     </form>
-    <div class="customizer-footer">
-      <button class="button button-ghost" type="button" data-close-customizer>Cancelar</button>
-      <button id="add-customized" class="button button-primary" type="button">Adicionar ao pedido</button>
-    </div>
   </dialog>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="js/app.js"></script>
-  <script type="module" src="js/v2.js"></script>
 </body>
 </html>
