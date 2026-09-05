@@ -3,16 +3,16 @@ const qs = (selector, root = document) => root.querySelector(selector);
 const qsa = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 const PRODUCT_IMAGES = [
-  ['Tradicional 300', 'assets/images/tradicional-300.webp'],
-  ['Tradicional 400', 'assets/images/tradicional-400.webp'],
-  ['Tradicional 500', 'assets/images/tradicional-500.webp'],
-  ['Trufado 300', 'assets/images/trufado-nutella-300.webp'],
-  ['Trufado 400', 'assets/images/trufado-nutella-400.webp'],
-  ['Trufado 500', 'assets/images/trufado-nutella-500.webp'],
+  ['Tradicional 300', 'assets/images/hero-acai.jpg'],
+  ['Tradicional 400', 'assets/images/tradicional-400.jpg'],
+  ['Tradicional 500', 'assets/images/hero-acai.jpg'],
+  ['Trufado 300', 'assets/images/trufado-nutella-300.jpg'],
+  ['Trufado 400', 'assets/images/trufado-nutella-400.jpg'],
+  ['Trufado 500', 'assets/images/trufado-nutella-500.jpg'],
 ];
 
 function imageForTitle(title) {
-  return PRODUCT_IMAGES.find(([needle]) => title.includes(needle))?.[1] || 'assets/images/hero-acai.webp';
+  return PRODUCT_IMAGES.find(([needle]) => title.includes(needle))?.[1] || 'assets/images/hero-acai.jpg';
 }
 
 function upgradeHero() {
@@ -39,8 +39,8 @@ function upgradeHero() {
   const productGrid = document.createElement('div');
   productGrid.className = 'hero-showcase-grid';
   productGrid.append(
-    showcaseProduct('assets/images/hero-acai.webp', 'Açaí tradicional generoso do Açaí da Bea', 'Açaí Tradicional', 'O clássico da casa com até 4 complementos, até 2 caldas e 1 fruta.', ['300 ml • R$ 16,90', '400 ml • R$ 20,90', '500 ml • R$ 24,90']),
-    showcaseProduct('assets/images/trufado-nutella-300.webp', 'Açaí premium trufado do Açaí da Bea', 'Açaí Premium Trufado', 'Mais cremoso, mais recheado e com 1 creme trufado incluso.', ['300 ml • R$ 21,90', '400 ml • R$ 25,90', '500 ml • R$ 29,90'], true)
+    showcaseProduct('assets/images/hero-acai.jpg', 'Açaí tradicional generoso do Açaí da Bea', 'Açaí Tradicional', 'O clássico da casa com até 4 complementos, até 2 caldas e 1 fruta.', ['300 ml • R$ 16,90', '400 ml • R$ 20,90', '500 ml • R$ 24,90']),
+    showcaseProduct('assets/images/trufado-nutella-300.jpg', 'Açaí premium trufado do Açaí da Bea', 'Açaí Premium Trufado', 'Mais cremoso, mais recheado e com 1 creme trufado incluso.', ['300 ml • R$ 21,90', '400 ml • R$ 25,90', '500 ml • R$ 29,90'], true)
   );
 
   const board = document.createElement('div');
@@ -118,7 +118,7 @@ function upgradeProductCards() {
 function upgradeAboutImage() {
   const img = qs('.about-photo img');
   if (!img) return;
-  img.src = 'assets/images/hero-acai.webp';
+  img.src = 'assets/images/hero-acai.jpg';
   img.width = 960;
   img.height = 720;
   img.alt = 'Açaí generoso do Açaí da Bea';
