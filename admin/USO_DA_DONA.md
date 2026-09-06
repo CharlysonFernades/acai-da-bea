@@ -1,22 +1,28 @@
-# Como a dona da loja acessa o painel
+# Como usar o painel do Açaí da Bea
 
-Depois que a branch for validada e mesclada na `main`, o painel ficará em:
+Administração:
 
 `https://charlysonfernades.github.io/acai-da-bea/admin/`
 
-O site dos clientes continua em:
+Site dos clientes:
 
 `https://charlysonfernades.github.io/acai-da-bea/`
 
-Não existe link público do cliente para o painel.
+Não existe link público do site do cliente para o painel. O acesso administrativo depende do login e da autorização configurada no Firebase.
 
 ## Rotina de uso
 
-1. Abrir `/admin/`.
-2. Entrar com e-mail e senha cadastrados no Firebase Authentication.
-3. Em **Loja**, editar telefone, Instagram, endereço, horário e ativar/desativar delivery.
-4. Em **Produtos**, alterar preço, descrição, disponibilidade e grupos de personalização.
-5. Em **Personalizações**, ligar/desligar opções que estejam em falta.
-6. Usar **Ver site** para conferir a alteração no cardápio do cliente.
+1. Abra `/admin/` e entre com a conta autorizada.
+2. Em **Loja**, atualize nome, WhatsApp, Instagram, URL do Instagram, endereço, horário e status do delivery quando necessário.
+3. Em **Produtos**, altere preço, descrição, imagem, ordem, regras de personalização e disponibilidade.
+4. Em **Personalizações**, gerencie grupos e opções, incluindo valores adicionais e disponibilidade.
+5. Use **Ver site** para conferir o resultado no cardápio público.
+
+## Cuidados
+
+- Não compartilhe a senha da conta administrativa.
+- Antes de salvar preço ou disponibilidade, confira se o produto correto está aberto.
+- Se uma opção acabar temporariamente, prefira marcá-la como indisponível em vez de recriar o cadastro.
+- O cliente recebe as atualizações do Firestore e o pedido é conferido novamente antes da abertura do WhatsApp.
 
 A autorização real é feita pelo Firebase Authentication + Firestore Rules; descobrir o endereço `/admin/` não libera acesso administrativo.
