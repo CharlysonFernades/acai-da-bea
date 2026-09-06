@@ -1,5 +1,6 @@
 import { firebaseConfigured } from './firebase-config.js';
-import { watchStoreData, watchCollectionData } from './store-service.js';
+import { watchStoreData, watchCollectionData, getCurrentCatalog } from './store-service.js';
+import { DEFAULT_IMAGE, formatCurrency, escapeHTML, safeExternalUrl, safeImageSource, normalizeWhatsApp, normalizeGroupId, effectiveSelectionRules, findGroup, availableOptions, productUnavailableReason, buildCartItem, reconcileCart, summarizeSelections, buildWhatsAppMessage } from './order-utils.js';
 
 const DEFAULT_STORE = {
   name: 'Açaí da Bea',
@@ -32,171 +33,262 @@ const DEFAULT_PRODUCTS = [
 ];
 
 const state = {
-  store: { ...DEFAULT_STORE },
-  products: [...DEFAULT_PRODUCTS],
-  groups: [...DEFAULT_GROUPS],
-  options: [...DEFAULT_OPTIONS],
-  cart: loadCart(),
-  currentProduct: null
+  store: { ...DEFAULT_STORE }, products: [...DEFAULT_PRODUCTS], groups: [...DEFAULT_GROUPS], options: [...DEFAULT_OPTIONS],
+  cart: loadCart(), currentProduct: null, currentSnapshot: '', cartNeedsReview: false, submitting: false,
+  remote: {}, loaded: new Set(), failures: new Set()
 };
-
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 const els = {
   productGrid:$('product-grid'), productDialog:$('product-dialog'), productForm:$('product-form'), productDialogContent:$('product-dialog-content'),
   cartDrawer:$('cart-drawer'), cartItems:$('cart-items'), cartTotal:$('cart-total'), cartCount:$('cart-count'), cartFooter:$('cart-footer'), backdrop:$('backdrop'),
   cartButton:$('cart-button'), closeCart:$('close-cart'), checkoutButton:$('checkout-button'), checkoutDialog:$('checkout-dialog'), checkoutForm:$('checkout-form'),
   closeCheckout:$('close-checkout'), toast:$('toast'), heroWhatsapp:$('hero-whatsapp'), contactWhatsapp:$('contact-whatsapp'), contactInstagram:$('contact-instagram'),
   contactMaps:$('contact-maps'), floatingCartWrap:$('floating-cart-wrap'), floatingCart:$('floating-cart'), floatingCartText:$('floating-cart-text'), deliveryFields:$('delivery-fields'),
-  deliveryChoice:$('delivery-choice'), whatsappDisplay:$('whatsapp-display'), instagramDisplay:$('instagram-display'), addressDisplay:$('address-display'), hoursTitle:$('hours-title'), hoursText:$('hours-text'), heroHours:$('hero-hours'), heroMinPrice:$('hero-min-price')
+  deliveryChoice:$('delivery-choice'), whatsappDisplay:$('whatsapp-display'), instagramDisplay:$('instagram-display'), addressDisplay:$('address-display'), hoursTitle:$('hours-title'),
+  hoursText:$('hours-text'), heroHours:$('hero-hours'), heroMinPrice:$('hero-min-price'), cartNotice:$('cart-update-notice'), whatsappFallback:$('whatsapp-fallback')
 };
-
-function formatCurrency(cents){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(cents)||0)/100)}
-function digits(value){return String(value||'').replace(/\D/g,'')}
-function displayPhone(value){const d=digits(value);if(d.length===13&&d.startsWith('55'))return `+55 ${d.slice(2,4)} ${d.slice(4,9)}-${d.slice(9)}`;return value||DEFAULT_STORE.whatsappDisplay}
-function loadCart(){try{return JSON.parse(localStorage.getItem('acai-da-bea-cart-v2'))||[]}catch{return[]}}
-function saveCart(){localStorage.setItem('acai-da-bea-cart-v2',JSON.stringify(state.cart))}
-function showToast(msg){els.toast.textContent=msg;els.toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>els.toast.classList.remove('show'),2200)}
-function getGroup(id){return state.groups.find(g=>g.id===id)}
-function optionsForGroup(groupId){return state.options.filter(o=>o.groupId===groupId&&o.available!==false)}
-function summarizeSelections(selections){return Object.entries(selections||{}).filter(([,v])=>Array.isArray(v)&&v.length).map(([key,values])=>`${getGroup(key)?.name||key}: ${values.join(', ')}`)}
-
-function normalizeRuleKey(key){
-  const normalized=String(key||'').trim().toLowerCase().replace(/_/g,'-');
-  if(['acaicremes','acai-cremes','açaí-cremes','acai-e-cremes'].includes(normalized))return'acai-cremes';
-  if(normalized==='adicionais')return'adicionais';
-  if(normalized==='coberturas')return'coberturas';
-  return normalized;
+const e = escapeHTML;
+function catalogReady() { return !firebaseConfigured || (state.loaded.size === 4 && state.failures.size === 0); }
+function loadCart() {
+  try { const saved=JSON.parse(localStorage.getItem('acai-da-bea-cart-v2')); return Array.isArray(saved) ? saved.filter(item=>item && typeof item==='object') : []; }
+  catch { return []; }
 }
-
-function inferredAcaiRules(product){
-  const id=String(product?.id||'').toLowerCase();
-  const name=String(product?.name||'').toLowerCase();
-  if(id.includes('330')||name.includes('330'))return {'acai-cremes':4,adicionais:4,coberturas:2};
-  if(id.includes('750')||name.includes('750'))return {'acai-cremes':6,adicionais:6,coberturas:2};
-  if(id.includes('1kg')||id.includes('1-kg')||name.includes('1 kg')||name.includes('1kg'))return {'acai-cremes':8,adicionais:8,coberturas:2};
-  return {};
+function saveCart() { try { localStorage.setItem('acai-da-bea-cart-v2',JSON.stringify(state.cart)); } catch { /* O pedido continua em memória. */ } }
+function showToast(message) {
+  els.toast.textContent=message; els.toast.classList.add('show'); clearTimeout(showToast.timer);
+  showToast.timer=setTimeout(()=>els.toast.classList.remove('show'),3500);
 }
-
-function effectiveSelectionRules(product){
-  const raw=product?.selectionRules&&typeof product.selectionRules==='object'?product.selectionRules:{};
-  const normalized={};
-  Object.entries(raw).forEach(([key,max])=>{
-    const cleanKey=normalizeRuleKey(key);
-    const cleanMax=Number(max);
-    if(cleanKey&&cleanMax>0)normalized[cleanKey]=cleanMax;
-  });
-  if(Object.keys(normalized).length)return normalized;
-  return inferredAcaiRules(product);
+function cartTotal() { return state.cart.reduce((sum,item)=>sum+(Number(item.priceCents)||0)*(Number(item.quantity)||0),0); }
+function cartCount() { return state.cart.reduce((sum,item)=>sum+(Number(item.quantity)||0),0); }
+function selectionsText(selections) { return summarizeSelections(selections,state.groups); }
+function getGroup(id) { return findGroup(state.groups,id); }
+function optionsForGroup(id) { return availableOptions(state.options,id); }
+function unavailableReason(product) { return productUnavailableReason(product,state.groups,state.options); }
+function snapshotFor(product) {
+  const ids=Object.keys(effectiveSelectionRules(product));
+  return JSON.stringify({product,groups:state.groups.filter(g=>ids.includes(normalizeGroupId(g.id))),options:state.options.filter(o=>ids.includes(normalizeGroupId(o.groupId)))});
 }
-
-function updateHeroPrice(){
-  if(!els.heroMinPrice)return;
-  const available=state.products.filter(p=>p.available!==false&&Number(p.priceCents)>0);
-  const acais=available.filter(p=>Number(effectiveSelectionRules(p)['acai-cremes'])>0);
+function invalidatePreparedMessage() { els.whatsappFallback.hidden=true; els.whatsappFallback.removeAttribute('href'); }
+function reconcileCurrentCart() {
+  if(!catalogReady()) return false;
+  const result=reconcileCart(state.cart,state.products,state.groups,state.options);
+  state.cart=result.items;
+  if(result.changed) { saveCart(); renderCart(); invalidatePreparedMessage(); }
+  if(result.messages.length) {
+    state.cartNeedsReview=true;
+    els.cartNotice.textContent=`Seu pedido foi atualizado. ${result.messages.join(' ')} Confira antes de continuar.`;
+    els.cartNotice.hidden=false;
+    showToast('Seu pedido foi atualizado. Confira o carrinho.');
+  }
+  return result.messages.length>0;
+}
+function syncCatalog() {
+  if(!catalogReady()) { renderProducts(); return; }
+  if(firebaseConfigured) {
+    state.store={...DEFAULT_STORE,...state.remote.store};
+    state.products=state.remote.products;
+    const provisional=!state.remote.groups.length&&!state.remote.options.length;
+    state.groups=provisional ? DEFAULT_GROUPS : state.remote.groups;
+    state.options=provisional ? DEFAULT_OPTIONS : state.remote.options;
+  }
+  applyStore(); renderProducts(); reconcileCurrentCart();
+  if(state.currentProduct && snapshotFor(state.products.find(p=>p.id===state.currentProduct.id))!==state.currentSnapshot) {
+    closeProductDialog(); showToast('Este produto foi atualizado. Abra-o novamente para conferir as opções.');
+  }
+}
+function updateHeroPrice() {
+  const available=state.products.filter(p=>!unavailableReason(p));
+  const acais=available.filter(p=>effectiveSelectionRules(p)['acai-cremes']);
   const candidates=acais.length?acais:available;
   const badge=els.heroMinPrice.closest('.hero-price');
-  if(!candidates.length){if(badge)badge.hidden=true;return}
-  if(badge)badge.hidden=false;
-  const minPrice=Math.min(...candidates.map(p=>Number(p.priceCents)));
-  els.heroMinPrice.textContent=formatCurrency(minPrice);
+  badge.hidden=!catalogReady()||!candidates.length;
+  if(candidates.length) els.heroMinPrice.textContent=formatCurrency(Math.min(...candidates.map(p=>p.priceCents)));
 }
-
-function applyStore(){
-  const s=state.store;
-  document.title=`${s.name||'Açaí da Bea'} • Cardápio`;
-  document.querySelectorAll('[data-store-name]').forEach(el=>el.textContent=s.name||'Açaí da Bea');
-  if(els.whatsappDisplay)els.whatsappDisplay.textContent=displayPhone(s.whatsapp||s.whatsappDigits);
-  if(els.instagramDisplay)els.instagramDisplay.textContent=s.instagram||'@acaibea';
-  if(els.heroHours)els.heroHours.textContent=s.openingHours||DEFAULT_STORE.openingHours;
-  if(els.hoursTitle)els.hoursTitle.textContent=s.openingHours||DEFAULT_STORE.openingHours;
-  if(els.hoursText)els.hoursText.textContent='';
-  if(els.addressDisplay)els.addressDisplay.textContent=s.address||'Abrir localização';
-
-  const wa=digits(s.whatsapp||s.whatsappDigits)||DEFAULT_STORE.whatsapp;
-  const generic=`Olá! Gostaria de fazer um pedido no ${s.name||'Açaí da Bea'}.`;
-  const waUrl=`https://wa.me/${wa}?text=${encodeURIComponent(generic)}`;
-  els.heroWhatsapp.href=waUrl;els.contactWhatsapp.href=waUrl;
-  if(s.instagramUrl){els.contactInstagram.href=s.instagramUrl;els.contactInstagram.hidden=false}else{els.contactInstagram.hidden=true}
-  if(s.address){els.contactMaps.href=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}`;els.contactMaps.hidden=false}else{els.contactMaps.hidden=true}
-
+function applyStore() {
+  const s=state.store, name=s.name||DEFAULT_STORE.name;
+  document.title=`${name} • Cardápio`;
+  document.querySelectorAll('[data-store-name]').forEach(el=>el.textContent=name);
+  const wa=normalizeWhatsApp(s.whatsapp||s.whatsappDigits);
+  els.whatsappDisplay.textContent=wa.length===13?`+55 ${wa.slice(2,4)} ${wa.slice(4,9)}-${wa.slice(9)}`:wa||'Contato em atualização';
+  els.instagramDisplay.textContent=s.instagram||'@acaibea';
+  const hours=s.openingHours||DEFAULT_STORE.openingHours;
+  document.querySelectorAll('[data-store-hours]').forEach(el=>el.textContent=hours);
+  els.heroHours.textContent=hours; els.hoursTitle.textContent=hours; els.hoursText.textContent='';
+  els.addressDisplay.textContent=s.address||'Abrir localização';
+  const waUrl=wa?`https://wa.me/${wa}?text=${encodeURIComponent(`Olá! Gostaria de fazer um pedido no ${name}.`)}`:'';
+  [els.heroWhatsapp,els.contactWhatsapp].forEach(link=>{ link.hidden=!waUrl; if(waUrl)link.href=waUrl; else link.removeAttribute('href'); });
+  const instagramUrl=safeExternalUrl(s.instagramUrl);
+  els.contactInstagram.hidden=!instagramUrl;
+  if(instagramUrl) els.contactInstagram.href=instagramUrl; else els.contactInstagram.removeAttribute('href');
+  els.contactMaps.hidden=!s.address;
+  if(s.address) els.contactMaps.href=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}`; else els.contactMaps.removeAttribute('href');
   const deliveryOn=s.deliveryEnabled===true;
   els.deliveryChoice.hidden=!deliveryOn;
-  if(!deliveryOn){const checked=els.checkoutForm.querySelector('input[name="service-type"][value="delivery"]');if(checked?.checked){els.checkoutForm.querySelector('input[value="retirada"]').checked=true}els.deliveryFields.hidden=true}
+  if(!deliveryOn) {
+    const delivery=els.checkoutForm.querySelector('input[value="delivery"]');
+    if(delivery.checked) {
+      els.checkoutForm.querySelector('input[value="retirada"]').checked=true;
+      if(els.checkoutDialog.open)showToast('O delivery foi desativado. Confira a forma de atendimento.');
+      invalidatePreparedMessage();
+    }
+  }
+  toggleDeliveryFields();
 }
-
-function renderProducts(){
-  els.productGrid.innerHTML=state.products.map(p=>{
-    const unavailable=p.available===false;
-    return `<article class="product-card ${unavailable?'is-unavailable':''}"><div class="product-photo"><img src="${p.image||'assets/images/acai-330.webp'}" alt="${p.name}" loading="lazy"></div><div class="product-body"><span class="product-tag">${p.category||'Cardápio'}</span>${unavailable?'<span class="sold-out-badge">ESGOTADO NO MOMENTO</span>':''}<h3 class="product-title">${p.name}</h3><p class="product-desc">${p.description||''}</p><div class="product-meta"><div class="product-price">${p.oldPriceCents?`<span class="old-price">${formatCurrency(p.oldPriceCents)}</span>`:''}<strong>${formatCurrency(p.priceCents)}</strong></div><button class="button primary" type="button" data-product-open="${p.id}" ${unavailable?'disabled':''}>${unavailable?'Indisponível':'Escolher'}</button></div></div></article>`
+function bindImageFallback(container) {
+  container.querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>{
+    if(img.getAttribute('src')!==DEFAULT_IMAGE) img.src=DEFAULT_IMAGE;
+  },{once:true}));
+}
+function renderProducts() {
+  const ready=catalogReady();
+  els.productGrid.innerHTML=state.products.map(product=>{
+    const reason=unavailableReason(product), disabled=!ready||Boolean(reason);
+    return `<article class="product-card ${disabled?'is-unavailable':''}"><div class="product-photo"><img src="${e(safeImageSource(product.image))}" alt="${e(product.name)}" loading="lazy"></div><div class="product-body"><span class="product-tag">${e(product.category||'Cardápio')}</span>${reason?'<span class="sold-out-badge">INDISPONÍVEL NO MOMENTO</span>':''}<h3 class="product-title">${e(product.name)}</h3><p class="product-desc">${e(product.description||'')}</p><div class="product-meta"><div class="product-price">${product.oldPriceCents>product.priceCents?`<span class="old-price">${formatCurrency(product.oldPriceCents)}</span>`:''}<strong>${formatCurrency(product.priceCents)}</strong></div><button class="button primary" type="button" data-product-open="${e(product.id)}" ${disabled?'disabled':''}>${!ready?(state.failures.size?'Aguarde atualização':'Carregando…'):reason?'Indisponível':'Escolher'}</button></div></div></article>`;
+  }).join('')||'<div class="cart-empty"><strong>Cardápio em atualização.</strong><p>Entre em contato com a loja para consultar os produtos.</p></div>';
+  els.productGrid.querySelectorAll('[data-product-open]').forEach(button=>button.addEventListener('click',()=>openProduct(button.dataset.productOpen)));
+  bindImageFallback(els.productGrid); updateHeroPrice();
+}
+function makeGroup(id,max) {
+  const group=getGroup(id), options=optionsForGroup(id);
+  if(!group||group.available===false||!options.length)return '';
+  return `<fieldset class="option-group" data-group="${e(id)}" data-max="${max}"><legend>${e(group.name)}</legend><div class="option-help">Escolha até ${max} ${max===1?'opção':'opções'}.</div><div class="choice-grid">${options.map(option=>`<label class="option-pill"><input type="checkbox" name="${e(id)}" value="${e(option.id)}"><span>${e(option.name)}${option.extraPriceCents?` (+${formatCurrency(option.extraPriceCents)})`:''}</span></label>`).join('')}</div></fieldset>`;
+}
+function selectedIds(form,rules) {
+  const data=new FormData(form);
+  return Object.fromEntries(Object.keys(rules).map(id=>[id,data.getAll(id)]));
+}
+function updateProductPrice() {
+  if(!state.currentProduct)return;
+  const selected=new FormData(els.productForm);
+  let extra=0;
+  for(const id of Object.keys(effectiveSelectionRules(state.currentProduct))) {
+    const chosen=new Set(selected.getAll(id));
+    extra+=optionsForGroup(id).filter(o=>chosen.has(o.id)).reduce((sum,o)=>sum+Number(o.extraPriceCents||0),0);
+  }
+  els.productDialogContent.querySelector('.dialog-price').textContent=formatCurrency(state.currentProduct.priceCents+extra);
+}
+function openProduct(id) {
+  if(!catalogReady())return showToast('Aguarde a atualização do cardápio.');
+  const product=state.products.find(p=>p.id===id), reason=unavailableReason(product);
+  if(reason)return showToast(reason);
+  state.currentProduct=product; state.currentSnapshot=snapshotFor(product);
+  const groups=Object.entries(effectiveSelectionRules(product)).map(([groupId,max])=>makeGroup(groupId,max)).join('');
+  els.productDialogContent.innerHTML=`<div class="dialog-grid"><div class="dialog-image"><img src="${e(safeImageSource(product.image))}" alt="${e(product.name)}"></div><div class="dialog-copy"><span class="product-tag">${e(product.category||'Cardápio')}</span><h3>${e(product.name)}</h3><p>${e(product.description||'')}</p><div class="dialog-price" aria-live="polite">${formatCurrency(product.priceCents)}</div></div></div><div class="dialog-actions">${groups||'<div class="option-group"><div class="option-help">Este item não precisa de personalização.</div></div>'}<label class="text-label">Observação do item<textarea name="itemNote" rows="3" maxlength="200" placeholder="Ex.: sem granola..."></textarea></label><button class="button primary full" type="submit" data-add-product>Adicionar ao pedido</button></div>`;
+  els.productDialogContent.querySelectorAll('[data-group]').forEach(group=>{
+    const max=Number(group.dataset.max), checks=[...group.querySelectorAll('input[type="checkbox"]')];
+    checks.forEach(check=>check.addEventListener('change',()=>{
+      if(checks.filter(input=>input.checked).length>max){check.checked=false;showToast(`Você pode escolher até ${max} opções nesse grupo.`);}
+      updateProductPrice();
+    }));
+  });
+  bindImageFallback(els.productDialogContent); els.productDialog.showModal();
+}
+function closeProductDialog() { if(els.productDialog.open)els.productDialog.close(); state.currentProduct=null; }
+function addCurrentProduct(event) {
+  event.preventDefault();
+  if(!state.currentProduct)return;
+  if(!catalogReady())return showToast('Aguarde a atualização do cardápio.');
+  const product=state.products.find(p=>p.id===state.currentProduct.id);
+  const data=new FormData(els.productForm);
+  const {item,error}=buildCartItem(product,{selectionIds:selectedIds(els.productForm,effectiveSelectionRules(product)),itemNote:data.get('itemNote'),quantity:1},state.groups,state.options);
+  if(error)return showToast(error);
+  reconcileCurrentCart();
+  const found=state.cart.find(entry=>entry.fingerprint===item.fingerprint);
+  if(found) { if(found.quantity===99)return showToast('O limite é de 99 unidades por item.'); found.quantity++; }
+  else state.cart.push(item);
+  saveCart();renderCart();invalidatePreparedMessage();closeProductDialog();showToast('Item adicionado ao pedido.');
+}
+function renderCart() {
+  const count=cartCount(), total=cartTotal();
+  els.cartCount.textContent=count;els.cartTotal.textContent=formatCurrency(total);
+  els.floatingCartText.textContent=`${count} ${count===1?'item':'itens'} • ${formatCurrency(total)}`;
+  els.floatingCartWrap.classList.toggle('hidden',count===0);
+  els.cartFooter.classList.toggle('hidden',!state.cart.length);
+  if(!state.cart.length){els.cartItems.innerHTML='<div class="cart-empty"><strong>Seu pedido está vazio.</strong><p>Escolha um produto para começar.</p></div>';return;}
+  els.cartItems.innerHTML=state.cart.map((item,index)=>{
+    const lines=selectionsText(item.selections);
+    if(item.extraPriceCents)lines.push(`Adicionais pagos: ${formatCurrency(item.extraPriceCents)} por unidade (inclusos)`);
+    if(item.itemNote)lines.push(`Observação: ${item.itemNote}`);
+    return `<article class="cart-item"><div class="cart-item-head"><div><h3>${item.quantity}x ${e(item.name)}</h3><strong>${formatCurrency(item.priceCents*item.quantity)}</strong></div><button type="button" class="dialog-close" data-remove="${index}" aria-label="Remover ${e(item.name)}">×</button></div>${lines.length?`<ul>${lines.map(line=>`<li>${e(line)}</li>`).join('')}</ul>`:''}<div class="qty-row"><small>Unitário: ${formatCurrency(item.priceCents)}</small><div class="qty-controls"><button type="button" data-minus="${index}" aria-label="Diminuir quantidade">−</button><strong>${item.quantity}</strong><button type="button" data-plus="${index}" aria-label="Aumentar quantidade">+</button></div></div></article>`;
   }).join('');
-  els.productGrid.querySelectorAll('[data-product-open]').forEach(b=>b.addEventListener('click',()=>openProduct(b.dataset.productOpen)));
-  updateHeroPrice();
+  els.cartItems.querySelectorAll('[data-remove]').forEach(button=>button.onclick=()=>{state.cart.splice(Number(button.dataset.remove),1);saveCart();renderCart();invalidatePreparedMessage();});
+  els.cartItems.querySelectorAll('[data-minus]').forEach(button=>button.onclick=()=>{const index=Number(button.dataset.minus);if(--state.cart[index].quantity<=0)state.cart.splice(index,1);saveCart();renderCart();invalidatePreparedMessage();});
+  els.cartItems.querySelectorAll('[data-plus]').forEach(button=>button.onclick=()=>{const item=state.cart[Number(button.dataset.plus)];if(item.quantity>=99)return showToast('O limite é de 99 unidades por item.');item.quantity++;saveCart();renderCart();invalidatePreparedMessage();});
 }
-
-function makeGroup(id,max){
-  const group=getGroup(id);if(!group||group.available===false)return'';const options=optionsForGroup(id);if(!options.length)return'';
-  return `<fieldset class="option-group" data-group="${id}" data-max="${max}"><legend>${group.name}</legend><div class="option-help">Escolha até ${max} ${max===1?'opção':'opções'}.</div><div class="choice-grid">${options.map(o=>`<label class="option-pill"><input type="checkbox" name="${id}" value="${o.name}"><span>${o.name}${o.extraPriceCents?` (+${formatCurrency(o.extraPriceCents)})`:''}</span></label>`).join('')}</div></fieldset>`;
+function openCart() { reconcileCurrentCart();els.cartDrawer.classList.add('open');els.cartDrawer.setAttribute('aria-hidden','false');els.backdrop.hidden=false; }
+function closeCart() { els.cartDrawer.classList.remove('open');els.cartDrawer.setAttribute('aria-hidden','true');els.backdrop.hidden=true; }
+function toggleDeliveryFields() {
+  const delivery=new FormData(els.checkoutForm).get('service-type')==='delivery'&&state.store.deliveryEnabled===true;
+  els.deliveryFields.hidden=!delivery;
+  ['delivery-street','delivery-number','delivery-neighborhood'].forEach(id=>$(id).required=delivery);
 }
-
-function openProduct(id){
-  const source=state.products.find(x=>x.id===id);if(!source||source.available===false)return;
-  const rules=effectiveSelectionRules(source);
-  const p={...source,selectionRules:rules};
-  state.currentProduct=p;
-  const groups=Object.entries(rules).map(([groupId,max])=>makeGroup(groupId,Number(max)||1)).join('');
-  els.productDialogContent.innerHTML=`<div class="dialog-grid"><div class="dialog-image"><img src="${p.image||'assets/images/acai-330.webp'}" alt="${p.name}"></div><div class="dialog-copy"><span class="product-tag">${p.category||'Cardápio'}</span><h3>${p.name}</h3><p>${p.description||''}</p><div class="dialog-price">${formatCurrency(p.priceCents)}</div></div></div><div class="dialog-actions">${groups||'<div class="option-group"><div class="option-help">Este item não precisa de personalização.</div></div>'}<label class="text-label">Observação do item<textarea name="itemNote" rows="3" maxlength="200" placeholder="Ex.: sem granola..."></textarea></label><button class="button primary full" type="submit" data-add-product>Adicionar ao pedido</button></div>`;
-  els.productDialogContent.querySelectorAll('[data-group]').forEach(group=>{const max=Number(group.dataset.max);const checks=[...group.querySelectorAll('input[type="checkbox"]')];checks.forEach(c=>c.addEventListener('change',()=>{if(checks.filter(x=>x.checked).length>max){c.checked=false;showToast(`Você pode escolher até ${max} opções nesse grupo.`)}}))});
-  els.productDialog.showModal();
+function checkoutPayload() {
+  const data=new FormData(els.checkoutForm),name=String(data.get('customer-name')||'').trim();
+  if(!name)throw new Error('Digite seu nome para continuar.');
+  const serviceType=String(data.get('service-type')||'retirada');
+  if(serviceType==='delivery'&&state.store.deliveryEnabled!==true)throw new Error('Delivery indisponível. Confira a forma de atendimento.');
+  const address={street:String(data.get('delivery-street')||'').trim(),number:String(data.get('delivery-number')||'').trim(),neighborhood:String(data.get('delivery-neighborhood')||'').trim(),reference:String(data.get('delivery-reference')||'').trim()};
+  if(serviceType==='delivery'&&(!address.street||!address.number||!address.neighborhood))throw new Error('Preencha rua, número e bairro.');
+  return {name,notes:String(data.get('customer-notes')||'').trim(),serviceType,serviceLabel:serviceType==='delivery'?'Delivery':'Retirada na loja',address};
 }
-
-function closeProductDialog(){
-  if(els.productDialog.open)els.productDialog.close();
-  state.currentProduct=null;
-}
-
-function addCurrentProduct(ev){
-  ev.preventDefault();const p=state.currentProduct;if(!p)return;const fd=new FormData(els.productForm);const selections={};Object.keys(p.selectionRules||{}).forEach(k=>selections[k]=fd.getAll(k));const itemNote=String(fd.get('itemNote')||'').trim();const fingerprint=JSON.stringify({id:p.id,selections,itemNote});const found=state.cart.find(i=>i.fingerprint===fingerprint);if(found)found.quantity+=1;else state.cart.push({id:p.id,fingerprint,name:p.name,priceCents:p.priceCents,quantity:1,selections,itemNote});saveCart();renderCart();els.productDialog.close();state.currentProduct=null;showToast('Item adicionado ao pedido.')
-}
-
-function cartTotal(){return state.cart.reduce((s,i)=>s+i.priceCents*i.quantity,0)}
-function cartCount(){return state.cart.reduce((s,i)=>s+i.quantity,0)}
-function renderCart(){
-  const count=cartCount(),total=cartTotal();els.cartCount.textContent=count;els.cartTotal.textContent=formatCurrency(total);els.floatingCartText.textContent=`${count} ${count===1?'item':'itens'} • ${formatCurrency(total)}`;els.floatingCartWrap.classList.toggle('hidden',count===0);
-  if(!state.cart.length){els.cartItems.innerHTML='<div class="cart-empty"><strong>Seu pedido está vazio.</strong><p>Escolha um produto para começar.</p></div>';els.cartFooter.classList.add('hidden');return}els.cartFooter.classList.remove('hidden');
-  els.cartItems.innerHTML=state.cart.map((item,index)=>{const lines=summarizeSelections(item.selections);if(item.itemNote)lines.push(`Observação: ${item.itemNote}`);return `<article class="cart-item"><div class="cart-item-head"><div><h3>${item.quantity}x ${item.name}</h3><strong>${formatCurrency(item.priceCents*item.quantity)}</strong></div><button type="button" class="dialog-close" data-remove="${index}">×</button></div>${lines.length?`<ul>${lines.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}<div class="qty-row"><small>Unitário: ${formatCurrency(item.priceCents)}</small><div class="qty-controls"><button type="button" data-minus="${index}">−</button><strong>${item.quantity}</strong><button type="button" data-plus="${index}">+</button></div></div></article>`}).join('');
-  els.cartItems.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{state.cart.splice(Number(b.dataset.remove),1);saveCart();renderCart()});
-  els.cartItems.querySelectorAll('[data-minus]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.minus);state.cart[i].quantity-=1;if(state.cart[i].quantity<=0)state.cart.splice(i,1);saveCart();renderCart()});
-  els.cartItems.querySelectorAll('[data-plus]').forEach(b=>b.onclick=()=>{state.cart[Number(b.dataset.plus)].quantity+=1;saveCart();renderCart()});
-}
-function openCart(){els.cartDrawer.classList.add('open');els.cartDrawer.setAttribute('aria-hidden','false');els.backdrop.hidden=false}
-function closeCart(){els.cartDrawer.classList.remove('open');els.cartDrawer.setAttribute('aria-hidden','true');els.backdrop.hidden=true}
-function toggleDeliveryFields(){const type=new FormData(els.checkoutForm).get('service-type')||'retirada';els.deliveryFields.hidden=type!=='delivery'}
-
-function buildWhatsAppMessage(payload){
-  const lines=[`Olá! Acabei de fazer meu pedido no ${state.store.name||'Açaí da Bea'}!`,'Segue os detalhes:','','────────────','','🛍️ *Itens do pedido*',''];
-  payload.items.forEach((item,index)=>{lines.push(`${index+1}. *${item.quantity}x ${item.name}* — ${formatCurrency(item.priceCents*item.quantity)}`);summarizeSelections(item.selections).forEach(line=>lines.push(`• ${line}`));if(item.itemNote)lines.push(`• Observação do item: ${item.itemNote}`);lines.push('')});
-  lines.push('────────────','',`💰 *Total dos produtos:* ${formatCurrency(payload.total)}`,'','*Forma de atendimento*',payload.serviceLabel);
-  if(payload.serviceType==='delivery'){lines.push('','*Endereço de entrega*',`${payload.address.street}, ${payload.address.number} - ${payload.address.neighborhood}`);if(payload.address.reference)lines.push(`Referência: ${payload.address.reference}`)}
-  lines.push('','*Observações*',payload.notes||'-','','Por favor, podem confirmar a disponibilidade do pedido?','','Obrigado!');return lines.join('\n')
-}
-
-function handleCheckout(ev){
-  ev.preventDefault();if(!state.cart.length)return showToast('Seu pedido está vazio.');const fd=new FormData(els.checkoutForm);const name=String(fd.get('customer-name')||'').trim();const notes=String(fd.get('customer-notes')||'').trim();let serviceType=String(fd.get('service-type')||'retirada');if(serviceType==='delivery'&&state.store.deliveryEnabled!==true)serviceType='retirada';if(!name)return showToast('Digite seu nome para continuar.');const address={street:String(fd.get('delivery-street')||'').trim(),number:String(fd.get('delivery-number')||'').trim(),neighborhood:String(fd.get('delivery-neighborhood')||'').trim(),reference:String(fd.get('delivery-reference')||'').trim()};if(serviceType==='delivery'&&(!address.street||!address.number||!address.neighborhood))return showToast('Preencha rua, número e bairro.');const payload={name,notes,serviceType,serviceLabel:serviceType==='delivery'?'Delivery':'Retirada na loja',items:state.cart,total:cartTotal(),address};const wa=digits(state.store.whatsapp||state.store.whatsappDigits)||DEFAULT_STORE.whatsapp;window.open(`https://wa.me/${wa}?text=${encodeURIComponent(buildWhatsAppMessage(payload))}`,'_blank','noopener');els.checkoutDialog.close()
-}
-
-function startFirebase(){
+async function refreshFromServer() {
   if(!firebaseConfigured)return;
-  watchStoreData((store)=>{if(store){state.store={...DEFAULT_STORE,...store};applyStore()}},(err)=>console.error('store',err));
-  watchCollectionData('products',(items)=>{if(items.length){state.products=items;renderProducts()}},(err)=>console.error('products',err));
-  watchCollectionData('optionGroups',(items)=>{if(items.length){state.groups=items;renderProducts()}},(err)=>console.error('groups',err));
-  watchCollectionData('options',(items)=>{if(items.length){state.options=items;renderProducts()}},(err)=>console.error('options',err));
+  let timer;
+  try {
+    const fresh=await Promise.race([getCurrentCatalog(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('A conexão demorou. Tente novamente.')),12000);})]);
+    state.remote=fresh;state.loaded=new Set(['store','products','groups','options']);state.failures.clear();syncCatalog();
+  } finally { clearTimeout(timer); }
 }
-
-function init(){
+async function handleCheckout(event) {
+  event.preventDefault();
+  if(state.submitting)return;
+  if(!state.cart.length)return showToast('Seu pedido está vazio.');
+  if(!catalogReady())return showToast('Aguarde a atualização do cardápio.');
+  if(reconcileCurrentCart()||state.cartNeedsReview){els.checkoutDialog.close();openCart();return;}
+  let payload;
+  try { payload=checkoutPayload(); } catch(error) { return showToast(error.message); }
+  invalidatePreparedMessage();state.submitting=true;
+  const button=els.checkoutForm.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Conferindo pedido…';
+  // Reserva a aba durante o clique para evitar bloqueio de popup após a consulta ao servidor.
+  let popup=null;
+  try { popup=window.open('about:blank','_blank');if(popup)popup.opener=null; } catch { /* Um link será oferecido se o navegador bloquear a aba. */ }
+  try {
+    await refreshFromServer();
+    if(!els.checkoutDialog.open){popup?.close();return;}
+    if(state.cartNeedsReview||!state.cart.length){popup?.close();els.checkoutDialog.close();openCart();return;}
+    if(payload.serviceType==='delivery'&&state.store.deliveryEnabled!==true)throw new Error('O delivery foi desativado. Confira a forma de atendimento.');
+    const wa=normalizeWhatsApp(state.store.whatsapp||state.store.whatsappDigits);
+    if(!wa)throw new Error('O contato da loja está em atualização. Tente novamente em instantes.');
+    payload={...payload,items:state.cart,total:cartTotal()};
+    const url=`https://wa.me/${wa}?text=${encodeURIComponent(buildWhatsAppMessage(state.store,payload,state.groups))}`;
+    if(popup&&!popup.closed){popup.location.replace(url);els.checkoutDialog.close();}
+    else {els.whatsappFallback.href=url;els.whatsappFallback.hidden=false;showToast('Toque em Abrir WhatsApp para continuar.');}
+  } catch(error) {
+    popup?.close();console.error('checkout',error);showToast(error.message?.startsWith('O ')?error.message:'Não foi possível conferir o pedido. Verifique a conexão e tente novamente.');
+  } finally {state.submitting=false;button.disabled=false;button.textContent='Montar mensagem';}
+}
+function startFirebase() {
+  if(!firebaseConfigured){syncCatalog();return;}
+  const receive=(key,data)=>{state.remote[key]=data;state.loaded.add(key);state.failures.delete(key);syncCatalog();};
+  const failure=key=>error=>{state.failures.add(key);renderProducts();console.error(key,error);showToast('Não foi possível atualizar o cardápio. Confira sua conexão.');};
+  watchStoreData(data=>receive('store',data||{}),failure('store'));
+  watchCollectionData('products',data=>receive('products',data),failure('products'));
+  watchCollectionData('optionGroups',data=>receive('groups',data),failure('groups'));
+  watchCollectionData('options',data=>receive('options',data),failure('options'));
+}
+function init() {
   applyStore();renderProducts();renderCart();startFirebase();
   els.productForm.addEventListener('submit',addCurrentProduct);
-  els.productForm.querySelector('.dialog-close')?.addEventListener('click',(event)=>{event.preventDefault();closeProductDialog()});
-  els.productDialog.addEventListener('close',()=>{state.currentProduct=null});
-  els.cartButton.onclick=openCart;els.floatingCart.onclick=openCart;els.closeCart.onclick=closeCart;els.backdrop.onclick=closeCart;els.checkoutButton.onclick=()=>{closeCart();els.checkoutDialog.showModal()};els.closeCheckout.onclick=()=>els.checkoutDialog.close();els.checkoutForm.addEventListener('submit',handleCheckout);els.checkoutForm.querySelectorAll('input[name="service-type"]').forEach(x=>x.addEventListener('change',toggleDeliveryFields));
+  els.productForm.querySelector('.dialog-close').addEventListener('click',event=>{event.preventDefault();closeProductDialog();});
+  els.productDialog.addEventListener('close',()=>{state.currentProduct=null;});
+  els.cartButton.onclick=openCart;els.floatingCart.onclick=openCart;els.closeCart.onclick=closeCart;els.backdrop.onclick=closeCart;
+  els.checkoutButton.onclick=()=>{
+    if(!catalogReady())return showToast('Aguarde a atualização do cardápio.');
+    if(reconcileCurrentCart()||!state.cart.length)return;
+    state.cartNeedsReview=false;els.cartNotice.hidden=true;invalidatePreparedMessage();closeCart();toggleDeliveryFields();els.checkoutDialog.showModal();
+  };
+  els.closeCheckout.onclick=()=>els.checkoutDialog.close();els.checkoutForm.addEventListener('submit',handleCheckout);
+  els.checkoutForm.addEventListener('input',invalidatePreparedMessage);
+  els.checkoutForm.querySelectorAll('input[name="service-type"]').forEach(input=>input.addEventListener('change',()=>{toggleDeliveryFields();invalidatePreparedMessage();}));
 }
 init();

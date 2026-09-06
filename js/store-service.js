@@ -4,12 +4,14 @@ import {
   doc,
   getDoc,
   getDocs,
+  getDocFromServer,
+  getDocsFromServer,
   onSnapshot,
   query,
   where
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
-const normalize = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+const normalize = (snap) => snap.docs.map((d) => ({ ...d.data(), id: d.id }));
 const sortByOrder = (a, b) => Number(a.order ?? 999) - Number(b.order ?? 999);
 
 function storeQuery(name) {
@@ -44,4 +46,21 @@ export function watchCollectionData(name, callback, onError = console.error) {
     (snap) => callback(normalize(snap).sort(sortByOrder)),
     onError
   );
+}
+
+// A finalização consulta o servidor; um catálogo antigo em cache não libera o pedido.
+export async function getCurrentCatalog() {
+  const [store, products, groups, options] = await Promise.all([
+    getDocFromServer(doc(db, 'stores', STORE_ID)),
+    getDocsFromServer(storeQuery('products')),
+    getDocsFromServer(storeQuery('optionGroups')),
+    getDocsFromServer(storeQuery('options'))
+  ]);
+  if (!store.exists()) throw new Error('O cadastro da loja está em atualização.');
+  return {
+    store: { ...store.data(), id: store.id },
+    products: normalize(products).sort(sortByOrder),
+    groups: normalize(groups).sort(sortByOrder),
+    options: normalize(options).sort(sortByOrder)
+  };
 }

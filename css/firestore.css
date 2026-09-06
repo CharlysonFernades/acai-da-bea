@@ -1,1 +1,4 @@
 .choice-pill[hidden]{display:none!important}.product-card.is-unavailable{opacity:.72}.product-card.is-unavailable .product-photo{filter:grayscale(.25)}.sold-out-badge{display:inline-flex;width:max-content;padding:8px 12px;border-radius:999px;background:#fdebed;color:#9d2634;font-weight:800;font-size:.84rem}.product-card button[disabled]{opacity:.6;cursor:not-allowed;transform:none}.firebase-note{font-size:.85rem;color:#786575;margin-top:8px}
+[hidden]{display:none!important}
+.cart-update-notice{margin:12px 20px 0;padding:12px;border-radius:12px;background:#fff4d5;color:#624600;font-size:.9rem;line-height:1.5}
+button:disabled{cursor:not-allowed;opacity:.65}

@@ -77,7 +77,7 @@
       </article>
       <article>
         <strong>Funcionamento</strong>
-        <p>Terça a domingo, das 17:00 às 22:00.</p>
+        <p data-store-hours>Terça a domingo, das 17:00 às 22:00.</p>
       </article>
     </section>
 
@@ -181,13 +181,13 @@
         <strong data-store-name>Açaí da Bea</strong>
         <p>Cardápio digital do Açaí da Bea.</p>
       </div>
-      <span class="footer-note">Atendimento via WhatsApp • Terça a domingo • 17h às 22h</span>
+      <span class="footer-note">Atendimento via WhatsApp • <span data-store-hours>Terça a domingo • 17h às 22h</span></span>
     </div>
   </footer>
 
   <dialog class="product-dialog" id="product-dialog">
     <form method="dialog" class="dialog-shell" id="product-form">
-      <button class="dialog-close" value="cancel" aria-label="Fechar">×</button>
+      <button class="dialog-close" type="button" value="cancel" aria-label="Fechar">×</button>
       <div id="product-dialog-content"></div>
     </form>
   </dialog>
@@ -201,6 +201,7 @@
       <button id="close-cart" type="button" aria-label="Fechar carrinho">×</button>
     </div>
 
+    <p class="cart-update-notice" id="cart-update-notice" role="status" hidden></p>
     <div class="drawer-body" id="cart-items"></div>
 
     <div class="drawer-foot" id="cart-footer">
@@ -267,6 +268,7 @@
       </label>
 
       <button class="button primary full" type="submit">Montar mensagem</button>
+      <a class="button primary full" id="whatsapp-fallback" target="_blank" rel="noopener noreferrer" hidden>Abrir WhatsApp</a>
       <small class="form-note">O WhatsApp será aberto com a mensagem do pedido pronta para revisão.</small>
     </form>
   </dialog>
