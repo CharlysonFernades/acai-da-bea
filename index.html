@@ -273,6 +273,18 @@
     </form>
   </dialog>
 
+  <dialog class="checkout-dialog order-return-dialog" id="order-return-dialog" aria-labelledby="order-return-title" aria-describedby="order-return-description">
+    <div class="checkout-card">
+      <span class="eyebrow">SEU PEDIDO</span>
+      <h2 id="order-return-title">Já enviou o pedido?</h2>
+      <p id="order-return-description">Se já enviou a mensagem no WhatsApp, você pode limpar o carrinho e começar outro pedido.</p>
+      <div class="order-return-actions">
+        <button class="button primary full" id="order-start-new" type="button">Já enviei, começar novo pedido</button>
+        <button class="button full order-continue" id="order-continue" type="button" autofocus>Continuar este pedido</button>
+      </div>
+    </div>
+  </dialog>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/min-selection-validation.js"></script>

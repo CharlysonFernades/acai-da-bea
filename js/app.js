@@ -2,6 +2,8 @@ import { firebaseConfigured } from './firebase-config.js';
 import { watchStoreData, watchCollectionData, getCurrentCatalog } from './store-service.js';
 import { DEFAULT_IMAGE, formatCurrency, escapeHTML, safeExternalUrl, safeImageSource, normalizeWhatsApp, normalizeGroupId, effectiveSelectionRules, findGroup, availableOptions, productUnavailableReason, buildCartItem, reconcileCart, summarizeSelections, buildWhatsAppMessage } from './order-utils.js';
 
+const ORDER_RETURN_KEY = 'acai-da-bea-whatsapp-pending-v1';
+
 const DEFAULT_STORE = {
   name: 'Açaí da Bea',
   whatsapp: '5585921455990',
@@ -34,7 +36,7 @@ const DEFAULT_PRODUCTS = [
 
 const state = {
   store: { ...DEFAULT_STORE }, products: [...DEFAULT_PRODUCTS], groups: [...DEFAULT_GROUPS], options: [...DEFAULT_OPTIONS],
-  cart: loadCart(), currentProduct: null, currentSnapshot: '', cartNeedsReview: false, submitting: false,
+  cart: loadCart(), currentProduct: null, currentSnapshot: '', cartNeedsReview: false, submitting: false, orderReturnPending: loadOrderReturnPending(),
   remote: {}, loaded: new Set(), failures: new Set()
 };
 const $ = id => document.getElementById(id);
@@ -45,7 +47,8 @@ const els = {
   closeCheckout:$('close-checkout'), toast:$('toast'), heroWhatsapp:$('hero-whatsapp'), contactWhatsapp:$('contact-whatsapp'), contactInstagram:$('contact-instagram'),
   contactMaps:$('contact-maps'), floatingCartWrap:$('floating-cart-wrap'), floatingCart:$('floating-cart'), floatingCartText:$('floating-cart-text'), deliveryFields:$('delivery-fields'),
   deliveryChoice:$('delivery-choice'), whatsappDisplay:$('whatsapp-display'), instagramDisplay:$('instagram-display'), addressDisplay:$('address-display'), hoursTitle:$('hours-title'),
-  hoursText:$('hours-text'), heroHours:$('hero-hours'), heroMinPrice:$('hero-min-price'), cartNotice:$('cart-update-notice'), whatsappFallback:$('whatsapp-fallback')
+  hoursText:$('hours-text'), heroHours:$('hero-hours'), heroMinPrice:$('hero-min-price'), cartNotice:$('cart-update-notice'), whatsappFallback:$('whatsapp-fallback'),
+  orderReturnDialog:$('order-return-dialog'), startNewOrder:$('order-start-new'), continueOrder:$('order-continue')
 };
 const e = escapeHTML;
 function catalogReady() { return !firebaseConfigured || (state.loaded.size === 4 && state.failures.size === 0); }
@@ -54,6 +57,26 @@ function loadCart() {
   catch { return []; }
 }
 function saveCart() { try { localStorage.setItem('acai-da-bea-cart-v2',JSON.stringify(state.cart)); } catch { /* O pedido continua em memória. */ } }
+function loadOrderReturnPending() {
+  try { return localStorage.getItem(ORDER_RETURN_KEY)==='1'; } catch { return false; }
+}
+function setOrderReturnPending(pending) {
+  state.orderReturnPending=pending;
+  try { if(pending)localStorage.setItem(ORDER_RETURN_KEY,'1'); else localStorage.removeItem(ORDER_RETURN_KEY); }
+  catch { /* A confirmação continua funcionando nesta página. */ }
+}
+function showOrderReturn() {
+  if(!state.orderReturnPending||state.submitting||document.hidden||els.orderReturnDialog.open||els.productDialog.open||els.checkoutDialog.open)return;
+  if(!state.cart.length){setOrderReturnPending(false);return;}
+  closeCart();els.orderReturnDialog.showModal();
+}
+function resolveOrderReturn(startNew) {
+  setOrderReturnPending(false);els.orderReturnDialog.close();
+  if(!startNew){openCart();els.closeCart.focus();return;}
+  state.cart=[];state.cartNeedsReview=false;els.cartNotice.hidden=true;
+  els.checkoutForm.reset();toggleDeliveryFields();saveCart();renderCart();invalidatePreparedMessage();closeCart();
+  showToast('Carrinho limpo. Você já pode montar um novo pedido.');els.cartButton.focus();
+}
 function showToast(message) {
   els.toast.textContent=message; els.toast.classList.add('show'); clearTimeout(showToast.timer);
   showToast.timer=setTimeout(()=>els.toast.classList.remove('show'),3500);
@@ -200,6 +223,7 @@ function addCurrentProduct(event) {
 }
 function renderCart() {
   const count=cartCount(), total=cartTotal();
+  if(!count&&state.orderReturnPending){setOrderReturnPending(false);els.orderReturnDialog.close();}
   els.cartCount.textContent=count;els.cartTotal.textContent=formatCurrency(total);
   els.floatingCartText.textContent=`${count} ${count===1?'item':'itens'} • ${formatCurrency(total)}`;
   els.floatingCartWrap.classList.toggle('hidden',count===0);
@@ -261,11 +285,11 @@ async function handleCheckout(event) {
     if(!wa)throw new Error('O contato da loja está em atualização. Tente novamente em instantes.');
     payload={...payload,items:state.cart,total:cartTotal()};
     const url=`https://wa.me/${wa}?text=${encodeURIComponent(buildWhatsAppMessage(state.store,payload,state.groups))}`;
-    if(popup&&!popup.closed){popup.location.replace(url);els.checkoutDialog.close();}
+    if(popup&&!popup.closed){popup.location.replace(url);setOrderReturnPending(true);els.checkoutDialog.close();}
     else {els.whatsappFallback.href=url;els.whatsappFallback.hidden=false;showToast('Toque em Abrir WhatsApp para continuar.');}
   } catch(error) {
     popup?.close();console.error('checkout',error);showToast(error.message?.startsWith('O ')?error.message:'Não foi possível conferir o pedido. Verifique a conexão e tente novamente.');
-  } finally {state.submitting=false;button.disabled=false;button.textContent='Montar mensagem';}
+  } finally {state.submitting=false;button.disabled=false;button.textContent='Montar mensagem';showOrderReturn();}
 }
 function startFirebase() {
   if(!firebaseConfigured){syncCatalog();return;}
@@ -290,5 +314,16 @@ function init() {
   els.closeCheckout.onclick=()=>els.checkoutDialog.close();els.checkoutForm.addEventListener('submit',handleCheckout);
   els.checkoutForm.addEventListener('input',invalidatePreparedMessage);
   els.checkoutForm.querySelectorAll('input[name="service-type"]').forEach(input=>input.addEventListener('change',()=>{toggleDeliveryFields();invalidatePreparedMessage();}));
+  els.whatsappFallback.addEventListener('click',event=>{
+    if(els.whatsappFallback.hidden||!els.whatsappFallback.getAttribute('href')){event.preventDefault();return;}
+    setOrderReturnPending(true);els.checkoutDialog.close();setTimeout(showOrderReturn,0);
+  });
+  els.startNewOrder.onclick=()=>resolveOrderReturn(true);
+  els.continueOrder.onclick=()=>resolveOrderReturn(false);
+  els.orderReturnDialog.addEventListener('cancel',event=>{event.preventDefault();resolveOrderReturn(false);});
+  window.addEventListener('focus',showOrderReturn);
+  window.addEventListener('pageshow',showOrderReturn);
+  document.addEventListener('visibilitychange',showOrderReturn);
+  showOrderReturn();
 }
 init();

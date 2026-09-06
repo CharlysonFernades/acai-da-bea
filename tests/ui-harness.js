@@ -8,18 +8,18 @@ function element() {
     querySelector(selector){if(!children.has(selector))children.set(selector,element());return children.get(selector);},
     querySelectorAll(){return [];},closest(){return this;},setAttribute(name,value){this[name]=value;},getAttribute(name){return this[name]??null;},removeAttribute(name){delete this[name];},
     setCustomValidity(message){this.validationMessage=message;},reportValidity(){return !this.validationMessage;},
-    addEventListener(name,callback){listeners[name]=callback;},showModal(){this.open=true;},close(){this.open=false;}
+    addEventListener(name,callback){listeners[name]=callback;},showModal(){this.open=true;},close(){this.open=false;},focus(){},reset(){this.fields={};}
   };
 }
-export function harness(type,initial={}) {
+export function harness(type,initial={},storage=new Map()) {
   const nodes=new Map(),writes=[],opened=[],callbacks={},dbData={stores:{'acai-da-bea':{}},products:{},optionGroups:{},options:{},admins:{},...structuredClone(initial)};
   const get=id=>{if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);};
   const docSnap=ref=>({id:ref.id,exists:()=>Boolean(dbData[ref.name]?.[ref.id]),data:()=>dbData[ref.name]?.[ref.id]});
   const querySnap=ref=>{const docs=Object.entries(dbData[ref.name]||{}).map(([id,data])=>({id,data:()=>data}));return {docs,empty:!docs.length};};
   const env={
-    document:{getElementById:get,querySelectorAll:()=>[]},localStorage:{getItem:()=>null,setItem(){}},setTimeout:()=>0,clearTimeout(){},console:{error(){}},firebaseConfigured:true,db:{},auth:{currentUser:{uid:'qa-owner'}},STORE_ID:'acai-da-bea',
+    document:{getElementById:get,querySelectorAll:()=>[],hidden:false,listeners:{},addEventListener(name,callback){this.listeners[name]=callback;}},localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},setTimeout:()=>0,clearTimeout(){},console:{error(){}},firebaseConfigured:true,db:{},auth:{currentUser:{uid:'qa-owner'}},STORE_ID:'acai-da-bea',
     FormData:class{constructor(form){this.fields=form.fields;}get(id){return this.fields[id]??null;}getAll(id){const value=this.fields[id];return value==null?[]:Array.isArray(value)?value:[value];}},
-    window:{open:()=>{const popup={closed:false,location:{replace:url=>popup.url=url},close(){this.closed=true;}};opened.push(popup);return popup;}},
+    window:{listeners:{},addEventListener(name,callback){this.listeners[name]=callback;},open:()=>{const popup={closed:false,location:{replace:url=>popup.url=url},close(){this.closed=true;}};opened.push(popup);return popup;}},
     watchStoreData:callback=>callbacks.store=callback,watchCollectionData:(name,callback)=>callbacks[name]=callback,
     getCurrentCatalog:async()=>({store:dbData.stores['acai-da-bea'],products:Object.entries(dbData.products).map(([id,d])=>({...d,id})),groups:Object.entries(dbData.optionGroups).map(([id,d])=>({...d,id})),options:Object.entries(dbData.options).map(([id,d])=>({...d,id}))}),
     doc:(_,name,id)=>({name,id}),collection:(_,name)=>({name}),query:ref=>ref,where:()=>({}),getDoc:async ref=>docSnap(ref),getDocsFromServer:async ref=>querySnap(ref),onSnapshot:()=>()=>{},
@@ -36,5 +36,5 @@ export function harness(type,initial={}) {
   const source=fs.readFileSync(new URL(path,import.meta.url),'utf8');
   const code=source.replace(/^import .*;\n/gm,'').replace(/init\(\);\s*$/,'')+'\nreturn {'+names.join(',')+'};';
   const api=new Function(...Object.keys(env),...Object.keys(utils),code)(...Object.values(env),...Object.values(utils));
-  return {api,get,writes,opened,callbacks,dbData,env};
+  return {api,get,writes,opened,callbacks,dbData,env,storage};
 }
