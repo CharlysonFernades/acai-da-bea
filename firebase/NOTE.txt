@@ -1,0 +1,1 @@
+Arquivos deste diretório são referências de configuração manual do Firebase Console.

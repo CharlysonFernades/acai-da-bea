@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/firestore.css">
 </head>
 <body>
   <header class="topbar">
@@ -17,7 +18,7 @@
       <a class="brand" href="#inicio" aria-label="Açaí da Bea - início">
         <span class="brand-mark" aria-hidden="true">B</span>
         <span class="brand-copy">
-          <strong>Açaí da Bea</strong>
+          <strong data-store-name>Açaí da Bea</strong>
           <small>AÇAIteria</small>
         </span>
       </a>
@@ -51,7 +52,7 @@
 
           <div class="hero-pills">
             <span>✨ Monte seu pedido</span>
-            <span>🕔 Terça a domingo • 17h às 22h</span>
+            <span>🕔 <span id="hero-hours">Terça a domingo, das 17:00 às 22:00</span></span>
           </div>
         </div>
 
@@ -72,7 +73,7 @@
       </article>
       <article>
         <strong>Atendimento direto</strong>
-        <p>A confirmação da retirada ou do delivery fica organizada dentro do WhatsApp.</p>
+        <p>A confirmação do atendimento fica organizada dentro do WhatsApp.</p>
       </article>
       <article>
         <strong>Funcionamento</strong>
@@ -131,7 +132,7 @@
           <span class="eyebrow">CONTATO</span>
           <h2>Fale com o Açaí da Bea</h2>
         </div>
-        <p>Para esta versão inicial, os pedidos são atendidos pelo WhatsApp. O cliente combina a retirada na loja ou, futuramente, o delivery.</p>
+        <p>Os pedidos são enviados pelo WhatsApp e confirmados diretamente com a loja.</p>
       </div>
 
       <div class="contact-grid">
@@ -148,7 +149,7 @@
           <span>◎</span>
           <div>
             <small>Instagram</small>
-            <strong>@acaibea</strong>
+            <strong id="instagram-display">@acaibea</strong>
             <p>Ver novidades da loja</p>
           </div>
         </a>
@@ -157,8 +158,8 @@
           <span>📍</span>
           <div>
             <small>Localização</small>
-            <strong>Google Maps</strong>
-            <p>Abrir localização</p>
+            <strong>Localização</strong>
+            <p id="address-display">Abrir localização</p>
           </div>
         </a>
 
@@ -166,8 +167,8 @@
           <span>🕔</span>
           <div>
             <small>Horário</small>
-            <strong>Terça a domingo</strong>
-            <p>Das 17:00 até as 22:00</p>
+            <strong id="hours-title">Terça a domingo, das 17:00 às 22:00</strong>
+            <p id="hours-text"></p>
           </div>
         </div>
       </div>
@@ -177,7 +178,7 @@
   <footer>
     <div class="container footer-inner">
       <div>
-        <strong>Açaí da Bea</strong>
+        <strong data-store-name>Açaí da Bea</strong>
         <p>Cardápio digital do Açaí da Bea.</p>
       </div>
       <span class="footer-note">Atendimento via WhatsApp • Terça a domingo • 17h às 22h</span>
@@ -236,7 +237,7 @@
       <fieldset class="choice-field">
         <legend>Tipo de atendimento</legend>
         <label class="choice-pill"><input type="radio" name="service-type" value="retirada" checked> Retirada na loja</label>
-        <label class="choice-pill"><input type="radio" name="service-type" value="delivery"> Delivery</label>
+        <label class="choice-pill" id="delivery-choice" hidden><input type="radio" name="service-type" value="delivery"> Delivery</label>
       </fieldset>
 
       <div id="delivery-fields" hidden>
