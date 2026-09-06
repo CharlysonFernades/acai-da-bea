@@ -60,6 +60,35 @@ function getGroup(id){return state.groups.find(g=>g.id===id)}
 function optionsForGroup(groupId){return state.options.filter(o=>o.groupId===groupId&&o.available!==false)}
 function summarizeSelections(selections){return Object.entries(selections||{}).filter(([,v])=>Array.isArray(v)&&v.length).map(([key,values])=>`${getGroup(key)?.name||key}: ${values.join(', ')}`)}
 
+function normalizeRuleKey(key){
+  const normalized=String(key||'').trim().toLowerCase().replace(/_/g,'-');
+  if(['acaicremes','acai-cremes','açaí-cremes','acai-e-cremes'].includes(normalized))return'acai-cremes';
+  if(normalized==='adicionais')return'adicionais';
+  if(normalized==='coberturas')return'coberturas';
+  return normalized;
+}
+
+function inferredAcaiRules(product){
+  const id=String(product?.id||'').toLowerCase();
+  const name=String(product?.name||'').toLowerCase();
+  if(id.includes('330')||name.includes('330'))return {'acai-cremes':4,adicionais:4,coberturas:2};
+  if(id.includes('750')||name.includes('750'))return {'acai-cremes':6,adicionais:6,coberturas:2};
+  if(id.includes('1kg')||id.includes('1-kg')||name.includes('1 kg')||name.includes('1kg'))return {'acai-cremes':8,adicionais:8,coberturas:2};
+  return {};
+}
+
+function effectiveSelectionRules(product){
+  const raw=product?.selectionRules&&typeof product.selectionRules==='object'?product.selectionRules:{};
+  const normalized={};
+  Object.entries(raw).forEach(([key,max])=>{
+    const cleanKey=normalizeRuleKey(key);
+    const cleanMax=Number(max);
+    if(cleanKey&&cleanMax>0)normalized[cleanKey]=cleanMax;
+  });
+  if(Object.keys(normalized).length)return normalized;
+  return inferredAcaiRules(product);
+}
+
 function applyStore(){
   const s=state.store;
   document.title=`${s.name||'Açaí da Bea'} • Cardápio`;
@@ -97,16 +126,23 @@ function makeGroup(id,max){
 }
 
 function openProduct(id){
-  const p=state.products.find(x=>x.id===id);if(!p||p.available===false)return;state.currentProduct=p;
-  const rules=p.selectionRules||{};
+  const source=state.products.find(x=>x.id===id);if(!source||source.available===false)return;
+  const rules=effectiveSelectionRules(source);
+  const p={...source,selectionRules:rules};
+  state.currentProduct=p;
   const groups=Object.entries(rules).map(([groupId,max])=>makeGroup(groupId,Number(max)||1)).join('');
-  els.productDialogContent.innerHTML=`<div class="dialog-grid"><div class="dialog-image"><img src="${p.image||'assets/images/acai-330.webp'}" alt="${p.name}"></div><div class="dialog-copy"><span class="product-tag">${p.category||'Cardápio'}</span><h3>${p.name}</h3><p>${p.description||''}</p><div class="dialog-price">${formatCurrency(p.priceCents)}</div></div></div><div class="dialog-actions">${groups||'<div class="option-group"><div class="option-help">Este item não precisa de personalização.</div></div>'}<label class="text-label">Observação do item<textarea name="itemNote" rows="3" maxlength="200" placeholder="Ex.: sem granola..."></textarea></label><button class="button primary full" type="submit">Adicionar ao pedido</button></div>`;
+  els.productDialogContent.innerHTML=`<div class="dialog-grid"><div class="dialog-image"><img src="${p.image||'assets/images/acai-330.webp'}" alt="${p.name}"></div><div class="dialog-copy"><span class="product-tag">${p.category||'Cardápio'}</span><h3>${p.name}</h3><p>${p.description||''}</p><div class="dialog-price">${formatCurrency(p.priceCents)}</div></div></div><div class="dialog-actions">${groups||'<div class="option-group"><div class="option-help">Este item não precisa de personalização.</div></div>'}<label class="text-label">Observação do item<textarea name="itemNote" rows="3" maxlength="200" placeholder="Ex.: sem granola..."></textarea></label><button class="button primary full" type="submit" data-add-product>Adicionar ao pedido</button></div>`;
   els.productDialogContent.querySelectorAll('[data-group]').forEach(group=>{const max=Number(group.dataset.max);const checks=[...group.querySelectorAll('input[type="checkbox"]')];checks.forEach(c=>c.addEventListener('change',()=>{if(checks.filter(x=>x.checked).length>max){c.checked=false;showToast(`Você pode escolher até ${max} opções nesse grupo.`)}}))});
   els.productDialog.showModal();
 }
 
+function closeProductDialog(){
+  if(els.productDialog.open)els.productDialog.close();
+  state.currentProduct=null;
+}
+
 function addCurrentProduct(ev){
-  ev.preventDefault();const p=state.currentProduct;if(!p)return;const fd=new FormData(els.productForm);const selections={};Object.keys(p.selectionRules||{}).forEach(k=>selections[k]=fd.getAll(k));const itemNote=String(fd.get('itemNote')||'').trim();const fingerprint=JSON.stringify({id:p.id,selections,itemNote});const found=state.cart.find(i=>i.fingerprint===fingerprint);if(found)found.quantity+=1;else state.cart.push({id:p.id,fingerprint,name:p.name,priceCents:p.priceCents,quantity:1,selections,itemNote});saveCart();renderCart();els.productDialog.close();showToast('Item adicionado ao pedido.')
+  ev.preventDefault();const p=state.currentProduct;if(!p)return;const fd=new FormData(els.productForm);const selections={};Object.keys(p.selectionRules||{}).forEach(k=>selections[k]=fd.getAll(k));const itemNote=String(fd.get('itemNote')||'').trim();const fingerprint=JSON.stringify({id:p.id,selections,itemNote});const found=state.cart.find(i=>i.fingerprint===fingerprint);if(found)found.quantity+=1;else state.cart.push({id:p.id,fingerprint,name:p.name,priceCents:p.priceCents,quantity:1,selections,itemNote});saveCart();renderCart();els.productDialog.close();state.currentProduct=null;showToast('Item adicionado ao pedido.')
 }
 
 function cartTotal(){return state.cart.reduce((s,i)=>s+i.priceCents*i.quantity,0)}
@@ -144,6 +180,10 @@ function startFirebase(){
 }
 
 function init(){
-  applyStore();renderProducts();renderCart();startFirebase();els.productForm.addEventListener('submit',addCurrentProduct);els.cartButton.onclick=openCart;els.floatingCart.onclick=openCart;els.closeCart.onclick=closeCart;els.backdrop.onclick=closeCart;els.checkoutButton.onclick=()=>{closeCart();els.checkoutDialog.showModal()};els.closeCheckout.onclick=()=>els.checkoutDialog.close();els.checkoutForm.addEventListener('submit',handleCheckout);els.checkoutForm.querySelectorAll('input[name="service-type"]').forEach(x=>x.addEventListener('change',toggleDeliveryFields));
+  applyStore();renderProducts();renderCart();startFirebase();
+  els.productForm.addEventListener('submit',addCurrentProduct);
+  els.productForm.querySelector('.dialog-close')?.addEventListener('click',(event)=>{event.preventDefault();closeProductDialog()});
+  els.productDialog.addEventListener('close',()=>{state.currentProduct=null});
+  els.cartButton.onclick=openCart;els.floatingCart.onclick=openCart;els.closeCart.onclick=closeCart;els.backdrop.onclick=closeCart;els.checkoutButton.onclick=()=>{closeCart();els.checkoutDialog.showModal()};els.closeCheckout.onclick=()=>els.checkoutDialog.close();els.checkoutForm.addEventListener('submit',handleCheckout);els.checkoutForm.querySelectorAll('input[name="service-type"]').forEach(x=>x.addEventListener('change',toggleDeliveryFields));
 }
 init();
