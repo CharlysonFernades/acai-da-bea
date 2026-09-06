@@ -56,6 +56,10 @@
   }
 
   form.addEventListener('submit', (event) => {
+    // Só valida quando a intenção é realmente adicionar o item ao pedido.
+    // Fechar/cancelar o modal nunca deve exigir personalização.
+    if (event.submitter && !event.submitter.matches('[data-add-product]')) return;
+
     const group = getRequiredCreamGroup();
     if (!group) return;
 
