@@ -18,7 +18,16 @@ service cloud.firestore {
     }
 
     function storeCreateFieldsAllowed() {
-      return request.resource.data.keys().hasOnly([
+      return request.resource.data.keys().hasAll([
+        'name',
+        'whatsapp',
+        'instagram',
+        'instagramUrl',
+        'address',
+        'openingHours',
+        'deliveryEnabled'
+      ])
+      && request.resource.data.keys().hasOnly([
         'name',
         'whatsapp',
         'instagram',
@@ -43,8 +52,41 @@ service cloud.firestore {
       ]);
     }
 
+    function storeDataIsValid(data) {
+      return data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120
+        && data.whatsapp is string
+        && data.whatsapp.matches('^[0-9]{10,15}$')
+        && data.instagram is string
+        && data.instagram.size() <= 100
+        && data.instagramUrl is string
+        && data.instagramUrl.size() <= 500
+        && (data.instagramUrl == '' || data.instagramUrl.matches('^https://.+'))
+        && data.address is string
+        && data.address.size() <= 300
+        && data.openingHours is string
+        && data.openingHours.size() <= 200
+        && data.deliveryEnabled is bool
+        && data.get('catalogRevision', 0) is int
+        && data.get('catalogRevision', 0) >= 0
+        && data.get('catalogRevision', 0) <= 1000000000;
+    }
+
     function productCreateFieldsAllowed() {
-      return request.resource.data.keys().hasOnly([
+      return request.resource.data.keys().hasAll([
+        'storeId',
+        'name',
+        'priceCents',
+        'oldPriceCents',
+        'category',
+        'description',
+        'image',
+        'order',
+        'available',
+        'selectionRules'
+      ])
+      && request.resource.data.keys().hasOnly([
         'storeId',
         'name',
         'priceCents',
@@ -72,8 +114,39 @@ service cloud.firestore {
       ]);
     }
 
+    function productDataIsValid(data) {
+      return data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120
+        && data.priceCents is int
+        && data.priceCents > 0
+        && data.priceCents <= 10000000
+        && (data.oldPriceCents == null
+          || (data.oldPriceCents is int
+            && data.oldPriceCents > data.priceCents
+            && data.oldPriceCents <= 10000000))
+        && data.category is string
+        && data.category.size() <= 80
+        && data.description is string
+        && data.description.size() <= 1000
+        && data.image is string
+        && data.image.size() <= 1000
+        && data.order is int
+        && data.order >= 0
+        && data.order <= 100000
+        && data.available is bool
+        && data.selectionRules is map
+        && data.selectionRules.size() <= 20;
+    }
+
     function groupCreateFieldsAllowed() {
-      return request.resource.data.keys().hasOnly([
+      return request.resource.data.keys().hasAll([
+        'storeId',
+        'name',
+        'order',
+        'available'
+      ])
+      && request.resource.data.keys().hasOnly([
         'storeId',
         'name',
         'order',
@@ -89,8 +162,26 @@ service cloud.firestore {
       ]);
     }
 
+    function groupDataIsValid(data) {
+      return data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120
+        && data.order is int
+        && data.order >= 0
+        && data.order <= 100000
+        && data.available is bool;
+    }
+
     function optionCreateFieldsAllowed() {
-      return request.resource.data.keys().hasOnly([
+      return request.resource.data.keys().hasAll([
+        'storeId',
+        'groupId',
+        'name',
+        'extraPriceCents',
+        'order',
+        'available'
+      ])
+      && request.resource.data.keys().hasOnly([
         'storeId',
         'groupId',
         'name',
@@ -110,6 +201,27 @@ service cloud.firestore {
       ]);
     }
 
+    function optionDataIsValid(data) {
+      return data.groupId is string
+        && data.groupId.size() > 0
+        && data.groupId.size() <= 120
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 120
+        && data.extraPriceCents is int
+        && data.extraPriceCents >= 0
+        && data.extraPriceCents <= 10000000
+        && data.order is int
+        && data.order >= 0
+        && data.order <= 100000
+        && data.available is bool;
+    }
+
+    function optionGroupReferenceIsValid() {
+      return existsAfter(/databases/$(database)/documents/optionGroups/$(request.resource.data.groupId))
+        && getAfter(/databases/$(database)/documents/optionGroups/$(request.resource.data.groupId)).data.storeId == 'acai-da-bea';
+    }
+
     match /admins/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
@@ -119,10 +231,12 @@ service cloud.firestore {
       allow read: if storeId == 'acai-da-bea';
       allow create: if activeAdmin()
         && storeId == 'acai-da-bea'
-        && storeCreateFieldsAllowed();
+        && storeCreateFieldsAllowed()
+        && storeDataIsValid(request.resource.data);
       allow update: if activeAdmin()
         && storeId == 'acai-da-bea'
-        && storeUpdateFieldsAllowed();
+        && storeUpdateFieldsAllowed()
+        && storeDataIsValid(request.resource.data);
       allow delete: if false;
     }
 
@@ -130,11 +244,13 @@ service cloud.firestore {
       allow read: if resource.data.storeId == 'acai-da-bea';
       allow create: if activeAdmin()
         && request.resource.data.storeId == 'acai-da-bea'
-        && productCreateFieldsAllowed();
+        && productCreateFieldsAllowed()
+        && productDataIsValid(request.resource.data);
       allow update: if activeAdmin()
         && resource.data.storeId == 'acai-da-bea'
         && request.resource.data.storeId == 'acai-da-bea'
-        && productUpdateFieldsAllowed();
+        && productUpdateFieldsAllowed()
+        && productDataIsValid(request.resource.data);
       allow delete: if false;
     }
 
@@ -142,11 +258,13 @@ service cloud.firestore {
       allow read: if resource.data.storeId == 'acai-da-bea';
       allow create: if activeAdmin()
         && request.resource.data.storeId == 'acai-da-bea'
-        && groupCreateFieldsAllowed();
+        && groupCreateFieldsAllowed()
+        && groupDataIsValid(request.resource.data);
       allow update: if activeAdmin()
         && resource.data.storeId == 'acai-da-bea'
         && request.resource.data.storeId == 'acai-da-bea'
-        && groupUpdateFieldsAllowed();
+        && groupUpdateFieldsAllowed()
+        && groupDataIsValid(request.resource.data);
       allow delete: if false;
     }
 
@@ -154,11 +272,15 @@ service cloud.firestore {
       allow read: if resource.data.storeId == 'acai-da-bea';
       allow create: if activeAdmin()
         && request.resource.data.storeId == 'acai-da-bea'
-        && optionCreateFieldsAllowed();
+        && optionCreateFieldsAllowed()
+        && optionDataIsValid(request.resource.data)
+        && optionGroupReferenceIsValid();
       allow update: if activeAdmin()
         && resource.data.storeId == 'acai-da-bea'
         && request.resource.data.storeId == 'acai-da-bea'
-        && optionUpdateFieldsAllowed();
+        && optionUpdateFieldsAllowed()
+        && optionDataIsValid(request.resource.data)
+        && optionGroupReferenceIsValid();
       allow delete: if false;
     }
 
