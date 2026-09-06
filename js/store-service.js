@@ -17,6 +17,7 @@ const normalize = (snap) => snap.docs.map((d) => ({ ...d.data(), id: d.id }));
 const sortByOrder = (a, b) => Number(a.order ?? 999) - Number(b.order ?? 999);
 const cache = { store: null, products: [], optionGroups: [], options: [] };
 const cacheLoaded = new Set();
+const CART_KEY = 'acai-da-bea-cart-v2';
 
 function storeQuery(name) {
   return query(collection(db, name), where('storeId', '==', STORE_ID));
@@ -39,6 +40,13 @@ async function getDocumentsByIds(name, ids) {
     where(documentId(), 'in', chunk)
   ))));
   return snapshots.flatMap(normalize).sort(sortByOrder);
+}
+
+function readStoredCart() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CART_KEY));
+    return Array.isArray(saved) ? saved : null;
+  } catch { return null; }
 }
 
 async function getFullCurrentCatalog() {
@@ -99,8 +107,9 @@ export function watchCollectionData(name, callback, onError = console.error) {
 // os produtos/grupos/opções que podem alterar aquele pedido. Carrinhos antigos
 // sem IDs de opções fazem a conferência completa uma única vez para migração.
 export async function getCurrentCatalog(cart = null) {
-  const plan = buildCheckoutReadPlan(cart, cache.optionGroups);
-  const selectiveReady = Array.isArray(cart) && cart.length > 0
+  const currentCart = Array.isArray(cart) ? cart : readStoredCart();
+  const plan = buildCheckoutReadPlan(currentCart, cache.optionGroups);
+  const selectiveReady = Array.isArray(currentCart) && currentCart.length > 0
     && !plan.requiresFullCatalog
     && ['products', 'optionGroups', 'options'].every(name => cacheLoaded.has(name));
   if (!selectiveReady) return getFullCurrentCatalog();
