@@ -18,30 +18,6 @@
       border-color: rgba(155, 36, 49, .55);
       box-shadow: 0 0 0 3px rgba(155, 36, 49, .08);
     }
-    .cart-clear-link-ui {
-      display: block;
-      width: fit-content;
-      margin: 10px auto 0;
-      padding: 6px 8px;
-      border: 0;
-      background: transparent;
-      color: var(--purple-dark, #5a0b52);
-      font: inherit;
-      font-weight: 800;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      box-shadow: none;
-    }
-    #order-start-new {
-      min-height: auto;
-      padding: 8px 10px;
-      border: 0;
-      background: transparent;
-      color: var(--purple-dark, #5a0b52);
-      box-shadow: none;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
   `;
   document.head.appendChild(style);
 
@@ -103,69 +79,4 @@
     if (!group || !group.contains(event.target)) return;
     if (group.querySelector('input[type="checkbox"]:checked')) hideError(group);
   });
-
-  // O X do cabeçalho do carrinho serve exclusivamente para fechar o carrinho.
-  // Ele não compartilha nenhuma ação com os controles que removem itens.
-  const cartDrawer = document.getElementById('cart-drawer');
-  const closeCartButton = document.getElementById('close-cart');
-  const backdrop = document.getElementById('backdrop');
-  if (cartDrawer && closeCartButton) {
-    closeCartButton.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      cartDrawer.classList.remove('open');
-      cartDrawer.setAttribute('aria-hidden', 'true');
-      if (backdrop) backdrop.hidden = true;
-    }, true);
-  }
-
-  function normalizeRemoveButtons() {
-    document.querySelectorAll('#cart-items [data-remove]').forEach((button) => {
-      button.type = 'button';
-      button.textContent = 'Remover item';
-      button.classList.remove('dialog-close');
-      button.classList.add('cart-item-remove');
-    });
-  }
-
-  const cartItems = document.getElementById('cart-items');
-  if (cartItems) {
-    normalizeRemoveButtons();
-    new MutationObserver(normalizeRemoveButtons).observe(cartItems, { childList: true, subtree: true });
-  }
-
-  function clearCart() {
-    // Usa os próprios controles do carrinho para manter o estado interno do site sincronizado.
-    let safety = 0;
-    while (safety < 100) {
-      const removeButton = document.querySelector('#cart-items [data-remove]');
-      if (!removeButton) break;
-      removeButton.click();
-      safety += 1;
-    }
-  }
-
-  const drawerFoot = document.querySelector('#cart-drawer .drawer-foot');
-  if (drawerFoot && !document.getElementById('cart-clear-link')) {
-    const clearButton = document.createElement('button');
-    clearButton.id = 'cart-clear-link';
-    clearButton.type = 'button';
-    clearButton.className = 'cart-clear-link-ui';
-    clearButton.textContent = 'Limpar carrinho';
-    clearButton.addEventListener('click', clearCart);
-
-    const helperText = drawerFoot.querySelector('small');
-    if (helperText) helperText.insertAdjacentElement('beforebegin', clearButton);
-    else drawerFoot.appendChild(clearButton);
-  }
-
-  // Depois de voltar do WhatsApp, a ação principal fica discreta: apenas "Limpar carrinho".
-  const returnTitle = document.getElementById('order-return-title');
-  const returnDescription = document.getElementById('order-return-description');
-  const startNewOrder = document.getElementById('order-start-new');
-  const continueOrder = document.getElementById('order-continue');
-  if (returnTitle) returnTitle.textContent = 'Carrinho';
-  if (returnDescription) returnDescription.textContent = 'O carrinho continua salvo.';
-  if (startNewOrder) startNewOrder.textContent = 'Limpar carrinho';
-  if (continueOrder) continueOrder.textContent = 'Manter carrinho';
 })();
