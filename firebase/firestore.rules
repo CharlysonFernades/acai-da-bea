@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function adminDoc() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
+    }
+
+    function activeAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && adminDoc().active == true
+        && adminDoc().role in ['owner', 'admin']
+        && adminDoc().storeId == 'acai-da-bea';
+    }
+
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /stores/{storeId} {
+      allow read: if storeId == 'acai-da-bea';
+      allow write: if activeAdmin() && storeId == 'acai-da-bea';
+    }
+
+    match /products/{productId} {
+      allow read: if resource.data.storeId == 'acai-da-bea';
+      allow create: if activeAdmin()
+        && request.resource.data.storeId == 'acai-da-bea';
+      allow update: if activeAdmin()
+        && resource.data.storeId == 'acai-da-bea'
+        && request.resource.data.storeId == 'acai-da-bea';
+      allow delete: if activeAdmin()
+        && resource.data.storeId == 'acai-da-bea';
+    }
+
+    match /optionGroups/{groupId} {
+      allow read: if resource.data.storeId == 'acai-da-bea';
+      allow create: if activeAdmin()
+        && request.resource.data.storeId == 'acai-da-bea';
+      allow update: if activeAdmin()
+        && resource.data.storeId == 'acai-da-bea'
+        && request.resource.data.storeId == 'acai-da-bea';
+      allow delete: if activeAdmin()
+        && resource.data.storeId == 'acai-da-bea';
+    }
+
+    match /options/{optionId} {
+      allow read: if resource.data.storeId == 'acai-da-bea';
+      allow create: if activeAdmin()
+        && request.resource.data.storeId == 'acai-da-bea';
+      allow update: if activeAdmin()
+        && resource.data.storeId == 'acai-da-bea'
+        && request.resource.data.storeId == 'acai-da-bea';
+      allow delete: if activeAdmin()
+        && resource.data.storeId == 'acai-da-bea';
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
