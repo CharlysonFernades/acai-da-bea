@@ -1,112 +1,79 @@
-# Açaí da Bea — protótipo do site do cliente
+# Açaí da Bea — cardápio digital
 
-Protótipo inicial do cardápio digital da **Loja A** do Açaí da Bea.
+Sistema web do **Açaí da Bea** com cardápio público, personalização de produtos, carrinho, finalização pelo WhatsApp e painel administrativo protegido por Firebase Authentication + Firestore Rules.
 
-## O que este protótipo tem
+## URLs
 
-- página do cliente com visual em roxo + amarelo;
-- cardápio com produtos e fotos;
-- personalização básica de cremes, adicionais e coberturas;
-- carrinho lateral;
-- finalização com mensagem formatada no WhatsApp;
-- horário atualizado: **terça a domingo, das 17:00 às 22:00**.
+- Cliente: `https://charlysonfernades.github.io/acai-da-bea/`
+- Administração: `https://charlysonfernades.github.io/acai-da-bea/admin/`
 
-## Estrutura
+O site público não possui link para o painel administrativo.
+
+## Como funciona
+
+1. O cliente acessa o cardápio e recebe os dados atuais da loja pelo Firestore.
+2. Escolhe um produto e monta as personalizações permitidas.
+3. O carrinho fica salvo no navegador do próprio cliente.
+4. Antes de liberar o WhatsApp, o sistema confere novamente os dados que podem alterar aquele pedido.
+5. O WhatsApp abre com a mensagem pronta para revisão e envio pelo cliente.
+
+A finalização não grava pedidos no Firestore.
+
+## Painel administrativo
+
+Pelo `/admin/`, um administrador autorizado pode gerenciar:
+
+- dados da loja, WhatsApp, Instagram, endereço e horário;
+- ativação/desativação do delivery;
+- produtos, preços, descrições, imagens e disponibilidade;
+- grupos de personalização;
+- opções e valores adicionais.
+
+Os dados comerciais devem ser alterados pelo painel/Firestore, e não diretamente no código do site público.
+
+## Estrutura principal
 
 ```text
-acai-da-bea-prototipo/
+acai-da-bea/
 ├── index.html
+├── admin/
+├── assets/
+│   └── images/
 ├── css/
-│   └── style.css
 ├── js/
-│   └── app.js
-└── assets/
-    └── images/
+│   ├── app.js
+│   ├── catalog-read-plan.js
+│   ├── firebase-config.js
+│   ├── order-utils.js
+│   └── store-service.js
+└── tests/
 ```
 
-## Como rodar
+## Desenvolvimento local
 
-Basta abrir o arquivo `index.html` no navegador.
+Para visualizar o site localmente, sirva a pasta por HTTP. Exemplo com a extensão **Live Server** no VS Code.
 
-Se quiser testar com mais segurança, pode usar uma extensão como **Live Server** no VS Code.
+Para executar os testes automatizados:
 
-## Onde alterar os dados principais
-
-Abra `js/app.js`.
-
-### WhatsApp
-
-Procure:
-
-```js
-whatsappDisplay: '+55 85 92145-5990',
-whatsappDigits: '5585921455990',
+```bash
+npm test
 ```
 
-### Instagram
+O projeto usa Node.js 20 ou superior para a suíte de testes.
 
-Procure:
+## Firebase
 
-```js
-instagramHandle: '@acaibea',
-instagramUrl: 'https://www.instagram.com/acaibea?stkn=MWIoYjJmM2NtNmN1bw=='
-```
+O projeto usa:
 
-### Google Maps
+- Firebase Authentication para acesso administrativo;
+- Cloud Firestore para loja, produtos, grupos e opções.
 
-Procure:
+Collections usadas pelo catálogo:
 
-```js
-mapsUrl: 'https://maps.app.goo.gl/E6QV2MibhUaMiP2w5'
-```
+- `stores`
+- `products`
+- `optionGroups`
+- `options`
+- `admins` para autorização do painel.
 
-### Horário
-
-Procure:
-
-```js
-hoursLabel: 'terça a domingo, das 17:00 às 22:00'
-```
-
-## Como alterar produtos
-
-No arquivo `js/app.js`, procure o array `PRODUCTS`.
-
-Cada produto tem essa estrutura:
-
-```js
-{
-  id: 'acai-330',
-  name: 'Açaí de 330g',
-  category: 'Mais pedido',
-  priceCents: 1484,
-  image: 'assets/images/acai-330.webp',
-  description: '...',
-  selectionRules: { acaiCremes: 4, adicionais: 4, coberturas: 2 }
-}
-```
-
-### Para trocar o preço
-
-Altere `priceCents`.
-
-Exemplo:
-- `1484` = R$ 14,84
-- `4499` = R$ 44,99
-
-### Para trocar a foto
-
-1. coloque a imagem nova dentro de `assets/images/`
-2. troque o caminho em `image`.
-
-### Para adicionar um novo produto
-
-Adicione um novo objeto dentro de `PRODUCTS`.
-
-### Para remover um produto
-
-Apague o objeto do produto dentro de `PRODUCTS`.
-
-## Observação
-
-Este projeto é a **versão do cliente**. O painel administrativo pode ser criado depois como um projeto separado ligado ao Firebase.
+Veja `ADMIN_SETUP.md` para os pontos de configuração e `admin/USO_DA_DONA.md` para a rotina de uso do painel.
