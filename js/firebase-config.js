@@ -7,7 +7,7 @@ export const STORE_ID = 'acai-da-bea';
 // Cole aqui o objeto firebaseConfig EXATO mostrado no Firebase Console.
 // A configuração web do Firebase não é uma senha; as Firestore Rules fazem a proteção real.
 export const firebaseConfig = {
-  apiKey: '__COLE_SUA_API_KEY_AQUI__',
+  apiKey: 'AIzaSyDUV8s1VwWEtsBGV8NTb6QXWAIJFOKvccw',
   authDomain: 'acai-da-bea.firebaseapp.com',
   projectId: 'acai-da-bea',
   storageBucket: 'acai-da-bea.firebasestorage.app',
