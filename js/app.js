@@ -47,7 +47,7 @@ const els = {
   cartButton:$('cart-button'), closeCart:$('close-cart'), checkoutButton:$('checkout-button'), checkoutDialog:$('checkout-dialog'), checkoutForm:$('checkout-form'),
   closeCheckout:$('close-checkout'), toast:$('toast'), heroWhatsapp:$('hero-whatsapp'), contactWhatsapp:$('contact-whatsapp'), contactInstagram:$('contact-instagram'),
   contactMaps:$('contact-maps'), floatingCartWrap:$('floating-cart-wrap'), floatingCart:$('floating-cart'), floatingCartText:$('floating-cart-text'), deliveryFields:$('delivery-fields'),
-  deliveryChoice:$('delivery-choice'), whatsappDisplay:$('whatsapp-display'), instagramDisplay:$('instagram-display'), addressDisplay:$('address-display'), hoursTitle:$('hours-title'), hoursText:$('hours-text'), heroHours:$('hero-hours')
+  deliveryChoice:$('delivery-choice'), whatsappDisplay:$('whatsapp-display'), instagramDisplay:$('instagram-display'), addressDisplay:$('address-display'), hoursTitle:$('hours-title'), hoursText:$('hours-text'), heroHours:$('hero-hours'), heroMinPrice:$('hero-min-price')
 };
 
 function formatCurrency(cents){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((Number(cents)||0)/100)}
@@ -89,6 +89,18 @@ function effectiveSelectionRules(product){
   return inferredAcaiRules(product);
 }
 
+function updateHeroPrice(){
+  if(!els.heroMinPrice)return;
+  const available=state.products.filter(p=>p.available!==false&&Number(p.priceCents)>0);
+  const acais=available.filter(p=>Number(effectiveSelectionRules(p)['acai-cremes'])>0);
+  const candidates=acais.length?acais:available;
+  const badge=els.heroMinPrice.closest('.hero-price');
+  if(!candidates.length){if(badge)badge.hidden=true;return}
+  if(badge)badge.hidden=false;
+  const minPrice=Math.min(...candidates.map(p=>Number(p.priceCents)));
+  els.heroMinPrice.textContent=formatCurrency(minPrice);
+}
+
 function applyStore(){
   const s=state.store;
   document.title=`${s.name||'Açaí da Bea'} • Cardápio`;
@@ -118,6 +130,7 @@ function renderProducts(){
     return `<article class="product-card ${unavailable?'is-unavailable':''}"><div class="product-photo"><img src="${p.image||'assets/images/acai-330.webp'}" alt="${p.name}" loading="lazy"></div><div class="product-body"><span class="product-tag">${p.category||'Cardápio'}</span>${unavailable?'<span class="sold-out-badge">ESGOTADO NO MOMENTO</span>':''}<h3 class="product-title">${p.name}</h3><p class="product-desc">${p.description||''}</p><div class="product-meta"><div class="product-price">${p.oldPriceCents?`<span class="old-price">${formatCurrency(p.oldPriceCents)}</span>`:''}<strong>${formatCurrency(p.priceCents)}</strong></div><button class="button primary" type="button" data-product-open="${p.id}" ${unavailable?'disabled':''}>${unavailable?'Indisponível':'Escolher'}</button></div></div></article>`
   }).join('');
   els.productGrid.querySelectorAll('[data-product-open]').forEach(b=>b.addEventListener('click',()=>openProduct(b.dataset.productOpen)));
+  updateHeroPrice();
 }
 
 function makeGroup(id,max){
