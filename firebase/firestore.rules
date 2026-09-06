@@ -17,6 +17,99 @@ service cloud.firestore {
         && adminDoc().storeId == 'acai-da-bea';
     }
 
+    function storeCreateFieldsAllowed() {
+      return request.resource.data.keys().hasOnly([
+        'name',
+        'whatsapp',
+        'instagram',
+        'instagramUrl',
+        'address',
+        'openingHours',
+        'deliveryEnabled',
+        'catalogRevision'
+      ]);
+    }
+
+    function storeUpdateFieldsAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'name',
+        'whatsapp',
+        'instagram',
+        'instagramUrl',
+        'address',
+        'openingHours',
+        'deliveryEnabled',
+        'catalogRevision'
+      ]);
+    }
+
+    function productCreateFieldsAllowed() {
+      return request.resource.data.keys().hasOnly([
+        'storeId',
+        'name',
+        'priceCents',
+        'oldPriceCents',
+        'category',
+        'description',
+        'image',
+        'order',
+        'available',
+        'selectionRules'
+      ]);
+    }
+
+    function productUpdateFieldsAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'name',
+        'priceCents',
+        'oldPriceCents',
+        'category',
+        'description',
+        'image',
+        'order',
+        'available',
+        'selectionRules'
+      ]);
+    }
+
+    function groupCreateFieldsAllowed() {
+      return request.resource.data.keys().hasOnly([
+        'storeId',
+        'name',
+        'order',
+        'available'
+      ]);
+    }
+
+    function groupUpdateFieldsAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'name',
+        'order',
+        'available'
+      ]);
+    }
+
+    function optionCreateFieldsAllowed() {
+      return request.resource.data.keys().hasOnly([
+        'storeId',
+        'groupId',
+        'name',
+        'extraPriceCents',
+        'order',
+        'available'
+      ]);
+    }
+
+    function optionUpdateFieldsAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'groupId',
+        'name',
+        'extraPriceCents',
+        'order',
+        'available'
+      ]);
+    }
+
     match /admins/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
@@ -24,40 +117,49 @@ service cloud.firestore {
 
     match /stores/{storeId} {
       allow read: if storeId == 'acai-da-bea';
-      allow write: if activeAdmin() && storeId == 'acai-da-bea';
+      allow create: if activeAdmin()
+        && storeId == 'acai-da-bea'
+        && storeCreateFieldsAllowed();
+      allow update: if activeAdmin()
+        && storeId == 'acai-da-bea'
+        && storeUpdateFieldsAllowed();
+      allow delete: if false;
     }
 
     match /products/{productId} {
       allow read: if resource.data.storeId == 'acai-da-bea';
       allow create: if activeAdmin()
-        && request.resource.data.storeId == 'acai-da-bea';
+        && request.resource.data.storeId == 'acai-da-bea'
+        && productCreateFieldsAllowed();
       allow update: if activeAdmin()
         && resource.data.storeId == 'acai-da-bea'
-        && request.resource.data.storeId == 'acai-da-bea';
-      allow delete: if activeAdmin()
-        && resource.data.storeId == 'acai-da-bea';
+        && request.resource.data.storeId == 'acai-da-bea'
+        && productUpdateFieldsAllowed();
+      allow delete: if false;
     }
 
     match /optionGroups/{groupId} {
       allow read: if resource.data.storeId == 'acai-da-bea';
       allow create: if activeAdmin()
-        && request.resource.data.storeId == 'acai-da-bea';
+        && request.resource.data.storeId == 'acai-da-bea'
+        && groupCreateFieldsAllowed();
       allow update: if activeAdmin()
         && resource.data.storeId == 'acai-da-bea'
-        && request.resource.data.storeId == 'acai-da-bea';
-      allow delete: if activeAdmin()
-        && resource.data.storeId == 'acai-da-bea';
+        && request.resource.data.storeId == 'acai-da-bea'
+        && groupUpdateFieldsAllowed();
+      allow delete: if false;
     }
 
     match /options/{optionId} {
       allow read: if resource.data.storeId == 'acai-da-bea';
       allow create: if activeAdmin()
-        && request.resource.data.storeId == 'acai-da-bea';
+        && request.resource.data.storeId == 'acai-da-bea'
+        && optionCreateFieldsAllowed();
       allow update: if activeAdmin()
         && resource.data.storeId == 'acai-da-bea'
-        && request.resource.data.storeId == 'acai-da-bea';
-      allow delete: if activeAdmin()
-        && resource.data.storeId == 'acai-da-bea';
+        && request.resource.data.storeId == 'acai-da-bea'
+        && optionUpdateFieldsAllowed();
+      allow delete: if false;
     }
 
     match /{document=**} {
