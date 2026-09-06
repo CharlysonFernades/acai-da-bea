@@ -4,12 +4,17 @@ import {
   doc,
   getDoc,
   getDocs,
-  onSnapshot
+  onSnapshot,
+  query,
+  where
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 const normalize = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-const belongs = (item) => !item.storeId || item.storeId === STORE_ID;
 const sortByOrder = (a, b) => Number(a.order ?? 999) - Number(b.order ?? 999);
+
+function storeQuery(name) {
+  return query(collection(db, name), where('storeId', '==', STORE_ID));
+}
 
 export async function getStoreData() {
   if (!firebaseConfigured || !db) return null;
@@ -19,8 +24,8 @@ export async function getStoreData() {
 
 export async function getCollectionData(name) {
   if (!firebaseConfigured || !db) return [];
-  const snap = await getDocs(collection(db, name));
-  return normalize(snap).filter(belongs).sort(sortByOrder);
+  const snap = await getDocs(storeQuery(name));
+  return normalize(snap).sort(sortByOrder);
 }
 
 export function watchStoreData(callback, onError = console.error) {
@@ -35,8 +40,8 @@ export function watchStoreData(callback, onError = console.error) {
 export function watchCollectionData(name, callback, onError = console.error) {
   if (!firebaseConfigured || !db) return () => {};
   return onSnapshot(
-    collection(db, name),
-    (snap) => callback(normalize(snap).filter(belongs).sort(sortByOrder)),
+    storeQuery(name),
+    (snap) => callback(normalize(snap).sort(sortByOrder)),
     onError
   );
 }
