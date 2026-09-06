@@ -78,7 +78,6 @@ service cloud.firestore {
         'storeId',
         'name',
         'priceCents',
-        'oldPriceCents',
         'category',
         'description',
         'image',
@@ -121,10 +120,10 @@ service cloud.firestore {
         && data.priceCents is int
         && data.priceCents > 0
         && data.priceCents <= 10000000
-        && (data.oldPriceCents == null
-          || (data.oldPriceCents is int
-            && data.oldPriceCents > data.priceCents
-            && data.oldPriceCents <= 10000000))
+        && (data.get('oldPriceCents', null) == null
+          || (data.get('oldPriceCents', null) is int
+            && data.get('oldPriceCents', null) > data.priceCents
+            && data.get('oldPriceCents', null) <= 10000000))
         && data.category is string
         && data.category.size() <= 80
         && data.description is string
