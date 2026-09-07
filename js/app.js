@@ -1,6 +1,6 @@
 import { firebaseConfigured } from './firebase-config.js';
 import { watchStoreData, watchCollectionData, getCurrentCatalog } from './store-service.js';
-import { DEFAULT_IMAGE, formatCurrency, escapeHTML, safeExternalUrl, safeImageSource, normalizeWhatsApp, normalizeGroupId, effectiveSelectionRules, findGroup, availableOptions, productUnavailableReason, buildCartItem, reconcileCart, summarizeSelections, buildWhatsAppMessage } from './order-utils.js';
+import { DEFAULT_IMAGE, formatCurrency, escapeHTML, safeExternalUrl, safeImageSource, normalizeWhatsApp, normalizeGroupId, effectiveSelectionRules, effectiveSelectionConstraints, findGroup, availableOptions, productUnavailableReason, buildCartItem, reconcileCart, summarizeSelections, buildWhatsAppMessage } from './order-utils.js';
 
 const ORDER_RETURN_KEY = 'acai-da-bea-whatsapp-pending-v1';
 
@@ -195,10 +195,15 @@ function renderProducts() {
   els.productGrid.querySelectorAll('[data-product-open]').forEach(button=>button.addEventListener('click',()=>openProduct(button.dataset.productOpen)));
   bindImageFallback(els.productGrid); updateHeroPrice();
 }
-function makeGroup(id,max) {
-  const group=getGroup(id), options=optionsForGroup(id);
-  if(!group||group.available===false||!options.length)return '';
-  return `<fieldset class="option-group" data-group="${e(id)}" data-max="${max}"><legend>${e(group.name)}</legend><div class="option-help">Escolha até ${max} ${max===1?'opção':'opções'}.</div><div class="choice-grid">${options.map(option=>`<label class="option-pill"><input type="checkbox" name="${e(id)}" value="${e(option.id)}"><span>${e(option.name)}${option.extraPriceCents?` (+${formatCurrency(option.extraPriceCents)})`:''}</span></label>`).join('')}</div></fieldset>`;
+function groupHelp(min,max) {
+  if(min<=0)return `Escolha até ${max} ${max===1?'opção':'opções'}.`;
+  if(min===max)return `Escolha ${min} ${min===1?'opção':'opções'}.`;
+  return `Escolha de ${min} a ${max} opções.`;
+}
+function makeGroup(id,rule) {
+  const group=getGroup(id), options=optionsForGroup(id),min=Number(rule?.min)||0,max=Number(rule?.max)||0;
+  if(!group||group.available===false||!options.length||max<1)return '';
+  return `<fieldset class="option-group" data-group="${e(id)}" data-min="${min}" data-max="${max}"><legend>${e(group.name)}</legend><div class="option-help">${e(groupHelp(min,max))}</div><div class="choice-grid">${options.map(option=>`<label class="option-pill"><input type="checkbox" name="${e(id)}" value="${e(option.id)}"><span>${e(option.name)}${option.extraPriceCents?` (+${formatCurrency(option.extraPriceCents)})`:''}</span></label>`).join('')}</div></fieldset>`;
 }
 function selectedIds(form,rules) {
   const data=new FormData(form);
@@ -219,7 +224,7 @@ function openProduct(id) {
   const product=state.products.find(p=>p.id===id), reason=unavailableReason(product);
   if(reason)return showToast(reason);
   state.currentProduct=product; state.currentSnapshot=snapshotFor(product);
-  const groups=Object.entries(effectiveSelectionRules(product)).map(([groupId,max])=>makeGroup(groupId,max)).join('');
+  const groups=Object.entries(effectiveSelectionConstraints(product)).map(([groupId,rule])=>makeGroup(groupId,rule)).join('');
   els.productDialogContent.innerHTML=`<div class="dialog-grid"><div class="dialog-image"><img src="${e(safeImageSource(product.image))}" alt="${e(product.name)}"></div><div class="dialog-copy"><span class="product-tag">${e(product.category||'Cardápio')}</span><h3>${e(product.name)}</h3><p>${e(product.description||'')}</p><div class="dialog-price" aria-live="polite">${formatCurrency(product.priceCents)}</div></div></div><div class="dialog-actions">${groups||'<div class="option-group"><div class="option-help">Este item não precisa de personalização.</div></div>'}<label class="text-label">Observação do item<textarea name="itemNote" rows="3" maxlength="200" placeholder="Ex.: sem granola..."></textarea></label><button class="button primary full" type="submit" data-add-product>Adicionar ao pedido</button></div>`;
   els.productDialogContent.querySelectorAll('[data-group]').forEach(group=>{
     const max=Number(group.dataset.max), checks=[...group.querySelectorAll('input[type="checkbox"]')];
