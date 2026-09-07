@@ -12,7 +12,7 @@ function element() {
   };
 }
 export function harness(type,initial={},storage=new Map()) {
-  const nodes=new Map(),writes=[],opened=[],callbacks={},dbData={stores:{'acai-da-bea':{}},products:{},optionGroups:{},options:{},admins:{},...structuredClone(initial)};
+  const nodes=new Map(),writes=[],opened=[],callbacks={},catalogRequests=[],dbData={stores:{'acai-da-bea':{}},products:{},optionGroups:{},options:{},admins:{},...structuredClone(initial)};
   const get=id=>{if(!nodes.has(id))nodes.set(id,element());return nodes.get(id);};
   const docSnap=ref=>({id:ref.id,exists:()=>Boolean(dbData[ref.name]?.[ref.id]),data:()=>dbData[ref.name]?.[ref.id]});
   const querySnap=ref=>{const docs=Object.entries(dbData[ref.name]||{}).map(([id,data])=>({id,data:()=>data}));return {docs,empty:!docs.length};};
@@ -21,7 +21,7 @@ export function harness(type,initial={},storage=new Map()) {
     FormData:class{constructor(form){this.fields=form.fields;}get(id){return this.fields[id]??null;}getAll(id){const value=this.fields[id];return value==null?[]:Array.isArray(value)?value:[value];}},
     window:{listeners:{},addEventListener(name,callback){this.listeners[name]=callback;},open:()=>{const popup={closed:false,location:{replace:url=>popup.url=url},close(){this.closed=true;}};opened.push(popup);return popup;}},
     watchStoreData:callback=>callbacks.store=callback,watchCollectionData:(name,callback)=>callbacks[name]=callback,
-    getCurrentCatalog:async()=>({store:dbData.stores['acai-da-bea'],products:Object.entries(dbData.products).map(([id,d])=>({...d,id})),groups:Object.entries(dbData.optionGroups).map(([id,d])=>({...d,id})),options:Object.entries(dbData.options).map(([id,d])=>({...d,id}))}),
+    getCurrentCatalog:async cart=>{catalogRequests.push(structuredClone(cart));return {store:dbData.stores['acai-da-bea'],products:Object.entries(dbData.products).map(([id,d])=>({...d,id})),groups:Object.entries(dbData.optionGroups).map(([id,d])=>({...d,id})),options:Object.entries(dbData.options).map(([id,d])=>({...d,id}))};},
     doc:(_,name,id)=>({name,id}),collection:(_,name)=>({name}),query:ref=>ref,where:()=>({}),getDoc:async ref=>docSnap(ref),getDocsFromServer:async ref=>querySnap(ref),onSnapshot:()=>()=>{},
     setDoc:async(ref,data,options)=>{writes.push({ref,data,options});dbData[ref.name]??={};dbData[ref.name][ref.id]=options?.merge?{...dbData[ref.name][ref.id],...data}:data;},
     updateDoc:async(ref,data)=>{writes.push({ref,data,update:true});dbData[ref.name]??={};dbData[ref.name][ref.id]={...dbData[ref.name][ref.id],...data};},
@@ -36,5 +36,5 @@ export function harness(type,initial={},storage=new Map()) {
   const source=fs.readFileSync(new URL(path,import.meta.url),'utf8');
   const code=source.replace(/^import .*;\n/gm,'').replace(/init\(\);\s*$/,'')+'\nreturn {'+names.join(',')+'};';
   const api=new Function(...Object.keys(env),...Object.keys(utils),code)(...Object.values(env),...Object.values(utils));
-  return {api,get,writes,opened,callbacks,dbData,env,storage};
+  return {api,get,writes,opened,callbacks,catalogRequests,dbData,env,storage};
 }
