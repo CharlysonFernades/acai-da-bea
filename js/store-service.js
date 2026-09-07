@@ -3,7 +3,6 @@ import { buildCheckoutReadPlan, mergeFreshDocuments } from './catalog-read-plan.
 import {
   collection,
   doc,
-  documentId,
   getDoc,
   getDocs,
   getDocFromServer,
@@ -17,7 +16,6 @@ const normalize = (snap) => snap.docs.map((d) => ({ ...d.data(), id: d.id }));
 const sortByOrder = (a, b) => Number(a.order ?? 999) - Number(b.order ?? 999);
 const cache = { store: null, products: [], optionGroups: [], options: [] };
 const cacheLoaded = new Set();
-const CART_KEY = 'acai-da-bea-cart-v2';
 
 function storeQuery(name) {
   return query(collection(db, name), where('storeId', '==', STORE_ID));
@@ -32,21 +30,12 @@ function rememberCollection(name, items) {
 async function getDocumentsByIds(name, ids) {
   const unique = [...new Set((Array.isArray(ids) ? ids : []).filter(id => typeof id === 'string' && id.trim()).map(id => id.trim()))];
   if (!unique.length) return [];
-  const chunks = [];
-  for (let index = 0; index < unique.length; index += 30) chunks.push(unique.slice(index, index + 30));
-  const snapshots = await Promise.all(chunks.map(chunk => getDocsFromServer(query(
-    collection(db, name),
-    where('storeId', '==', STORE_ID),
-    where(documentId(), 'in', chunk)
-  ))));
-  return snapshots.flatMap(normalize).sort(sortByOrder);
-}
-
-function readStoredCart() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(CART_KEY));
-    return Array.isArray(saved) ? saved : null;
-  } catch { return null; }
+  const snapshots = await Promise.all(unique.map(id => getDocFromServer(doc(db, name, id))));
+  return snapshots
+    .filter(snap => snap.exists())
+    .map(snap => ({ ...snap.data(), id: snap.id }))
+    .filter(item => item.storeId === STORE_ID)
+    .sort(sortByOrder);
 }
 
 async function getFullCurrentCatalog() {
@@ -103,34 +92,40 @@ export function watchCollectionData(name, callback, onError = console.error) {
   );
 }
 
-// A finalização sempre confirma a loja e, para carrinhos atuais, relê apenas
-// os produtos/grupos/opções que podem alterar aquele pedido. Carrinhos antigos
-// sem IDs de opções fazem a conferência completa uma única vez para migração.
+// A finalização sempre confirma a loja e, para carrinhos atuais, tenta reler
+// apenas os documentos usados pelo pedido. Se a conferência seletiva falhar
+// por regra, índice, documento legado ou outro erro recuperável, o serviço
+// refaz a validação com o catálogo completo antes de desistir da finalização.
 export async function getCurrentCatalog(cart = null) {
-  const currentCart = Array.isArray(cart) ? cart : readStoredCart();
+  const currentCart = Array.isArray(cart) ? cart : null;
   const plan = buildCheckoutReadPlan(currentCart, cache.optionGroups);
   const selectiveReady = Array.isArray(currentCart) && currentCart.length > 0
     && !plan.requiresFullCatalog
     && ['products', 'optionGroups', 'options'].every(name => cacheLoaded.has(name));
   if (!selectiveReady) return getFullCurrentCatalog();
 
-  const [store, freshProducts, freshGroups, freshOptions] = await Promise.all([
-    getDocFromServer(doc(db, 'stores', STORE_ID)),
-    getDocumentsByIds('products', plan.productIds),
-    getDocumentsByIds('optionGroups', plan.groupIds),
-    getDocumentsByIds('options', plan.optionIds)
-  ]);
-  if (!store.exists()) throw new Error('O cadastro da loja está em atualização.');
+  try {
+    const [store, freshProducts, freshGroups, freshOptions] = await Promise.all([
+      getDocFromServer(doc(db, 'stores', STORE_ID)),
+      getDocumentsByIds('products', plan.productIds),
+      getDocumentsByIds('optionGroups', plan.groupIds),
+      getDocumentsByIds('options', plan.optionIds)
+    ]);
+    if (!store.exists()) throw new Error('O cadastro da loja está em atualização.');
 
-  cache.store = { ...store.data(), id: store.id };
-  cache.products = mergeFreshDocuments(cache.products, freshProducts, plan.productIds).sort(sortByOrder);
-  cache.optionGroups = mergeFreshDocuments(cache.optionGroups, freshGroups, plan.groupIds).sort(sortByOrder);
-  cache.options = mergeFreshDocuments(cache.options, freshOptions, plan.optionIds).sort(sortByOrder);
+    cache.store = { ...store.data(), id: store.id };
+    cache.products = mergeFreshDocuments(cache.products, freshProducts, plan.productIds).sort(sortByOrder);
+    cache.optionGroups = mergeFreshDocuments(cache.optionGroups, freshGroups, plan.groupIds).sort(sortByOrder);
+    cache.options = mergeFreshDocuments(cache.options, freshOptions, plan.optionIds).sort(sortByOrder);
 
-  return {
-    store: cache.store,
-    products: [...cache.products],
-    groups: [...cache.optionGroups],
-    options: [...cache.options]
-  };
+    return {
+      store: cache.store,
+      products: [...cache.products],
+      groups: [...cache.optionGroups],
+      options: [...cache.options]
+    };
+  } catch (error) {
+    console.warn('Falha na conferência seletiva do checkout; refazendo com o catálogo completo.', error);
+    return getFullCurrentCatalog();
+  }
 }
