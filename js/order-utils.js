@@ -53,27 +53,59 @@ function orderSelectionRules(rules) {
   for (const id of ['acai-cremes', 'adicionais', 'coberturas']) {
     if (Object.prototype.hasOwnProperty.call(rules, id)) ordered[id] = rules[id];
   }
-  for (const [id, maximum] of Object.entries(rules)) {
-    if (!Object.prototype.hasOwnProperty.call(ordered, id)) ordered[id] = maximum;
+  for (const [id, value] of Object.entries(rules)) {
+    if (!Object.prototype.hasOwnProperty.call(ordered, id)) ordered[id] = value;
   }
   return ordered;
 }
 
-export function effectiveSelectionRules(product) {
-  const name = `${product?.id || ''} ${product?.name || ''}`.toLowerCase();
-  let inferred = {};
-  if (name.includes('330')) inferred = { 'acai-cremes': 4, adicionais: 4, coberturas: 2 };
-  else if (name.includes('750')) inferred = { 'acai-cremes': 6, adicionais: 6, coberturas: 2 };
-  else if (/1\s?-?kg/.test(name)) inferred = { 'acai-cremes': 8, adicionais: 8, coberturas: 2 };
-  const rules = {};
-  for (const [id, maximum] of Object.entries(product?.selectionRules || {})) {
-    const max = Number(maximum);
-    if (Number.isInteger(max) && max > 0 && max <= 20) rules[normalizeGroupId(id)] = max;
+function inferredSelectionConstraints(product) {
+  const id = String(product?.id || '').trim().toLowerCase();
+  if (id === 'acai-330') return {
+    'acai-cremes': { min: 1, max: 4 },
+    adicionais: { min: 0, max: 4 },
+    coberturas: { min: 0, max: 2 }
+  };
+  if (id === 'acai-750') return {
+    'acai-cremes': { min: 1, max: 6 },
+    adicionais: { min: 0, max: 6 },
+    coberturas: { min: 0, max: 2 }
+  };
+  if (id === 'acai-1kg') return {
+    'acai-cremes': { min: 1, max: 8 },
+    adicionais: { min: 0, max: 8 },
+    coberturas: { min: 0, max: 2 }
+  };
+  return {};
+}
+
+function normalizeConstraint(id, raw) {
+  const normalizedId = normalizeGroupId(id);
+  const legacy = typeof raw === 'number' || typeof raw === 'string';
+  const max = Number(legacy ? raw : raw?.max);
+  const fallbackMin = normalizedId === 'acai-cremes' ? 1 : 0;
+  const min = Number(legacy ? fallbackMin : (raw?.min ?? fallbackMin));
+  if (!Number.isInteger(max) || max <= 0 || max > 20) return null;
+  if (!Number.isInteger(min) || min < 0 || min > max || min > 20) return null;
+  return { min, max };
+}
+
+export function effectiveSelectionConstraints(product) {
+  const inferred = inferredSelectionConstraints(product);
+  const constraints = {};
+  for (const [id, raw] of Object.entries(product?.selectionRules || {})) {
+    const normalizedId = normalizeGroupId(id);
+    const constraint = normalizeConstraint(normalizedId, raw);
+    if (constraint) constraints[normalizedId] = constraint;
   }
-  if (!Object.keys(rules).length) return orderSelectionRules(inferred);
-  // Os tamanhos de açaí conhecidos continuam exigindo uma base, mesmo em cadastros antigos.
-  if (inferred['acai-cremes'] && !rules['acai-cremes']) rules['acai-cremes'] = inferred['acai-cremes'];
-  return orderSelectionRules(rules);
+  if (!Object.keys(constraints).length) return orderSelectionRules(inferred);
+  // Os três produtos originais preservam uma base obrigatória mesmo em cadastros antigos.
+  if (inferred['acai-cremes'] && !constraints['acai-cremes']) constraints['acai-cremes'] = inferred['acai-cremes'];
+  return orderSelectionRules(constraints);
+}
+
+export function effectiveSelectionRules(product) {
+  return Object.fromEntries(Object.entries(effectiveSelectionConstraints(product)).map(([id, rule]) => [id, rule.max]));
 }
 
 export function findGroup(groups, id) {
@@ -88,10 +120,15 @@ export function availableOptions(options, groupId) {
 export function productUnavailableReason(product, groups, options) {
   if (!product || product.available === false) return 'Produto indisponível.';
   if (!Number.isSafeInteger(product.priceCents) || product.priceCents <= 0) return 'Preço em atualização.';
-  const rules = effectiveSelectionRules(product);
-  if (rules['acai-cremes']) {
-    const group = findGroup(groups, 'acai-cremes');
-    if (!group || group.available === false || !availableOptions(options, 'acai-cremes').length) return 'Sem opções de açaí ou creme disponíveis.';
+  const constraints = effectiveSelectionConstraints(product);
+  for (const [groupId, { min }] of Object.entries(constraints)) {
+    if (min <= 0) continue;
+    const group = findGroup(groups, groupId);
+    const available = availableOptions(options, groupId);
+    if (!group || group.available === false || available.length < min) {
+      if (groupId === 'acai-cremes') return 'Sem opções de açaí ou creme disponíveis.';
+      return group?.name ? `Sem opções suficientes em ${group.name}.` : 'Uma personalização obrigatória está indisponível.';
+    }
   }
   return '';
 }
@@ -107,20 +144,23 @@ function normalizeSelections(raw) {
 export function buildCartItem(product, raw, groups, options) {
   const unavailable = productUnavailableReason(product, groups, options);
   if (unavailable) return { error: unavailable };
-  const rules = effectiveSelectionRules(product);
+  const constraints = effectiveSelectionConstraints(product);
   const byId = Boolean(raw.selectionIds);
   const requested = normalizeSelections(byId ? raw.selectionIds : raw.selections);
   const labels = normalizeSelections(raw.selections);
   const selectionIds = {}, selections = {};
   let extraPriceCents = 0;
   for (const [groupId, values] of Object.entries(requested)) {
-    if (values.length && !rules[groupId]) return { error: 'A personalização mudou. Escolha o produto novamente.' };
+    if (values.length && !constraints[groupId]) return { error: 'A personalização mudou. Escolha o produto novamente.' };
   }
-  for (const [groupId, max] of Object.entries(rules)) {
+  for (const [groupId, { min, max }] of Object.entries(constraints)) {
     const values = requested[groupId] || [];
     const group = findGroup(groups, groupId);
     if (values.length > max) return { error: `Você pode escolher até ${max} opções nesse grupo.` };
-    if (groupId === 'acai-cremes' && !values.length) return { error: 'Selecione no mínimo 1 opção.' };
+    if (values.length < min) {
+      if (groupId === 'acai-cremes' && min === 1) return { error: 'Selecione no mínimo 1 opção.' };
+      return { error: `Selecione no mínimo ${min} ${min === 1 ? 'opção' : 'opções'} em ${group?.name || 'este grupo'}.` };
+    }
     if (values.length && (!group || group.available === false)) return { error: 'Uma personalização ficou indisponível. Monte o item novamente.' };
     const allowed = availableOptions(options, groupId);
     const selected = [];
