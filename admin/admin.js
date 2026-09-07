@@ -1,17 +1,18 @@
 import { auth, db, firebaseConfigured, STORE_ID } from '../js/firebase-config.js';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { collection, doc, getDoc, getDocsFromServer, onSnapshot, query, setDoc, updateDoc, where, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
-import { parseMoneyCents, escapeHTML, safeExternalUrl, safeImageSource, normalizeWhatsApp, normalizeGroupId, effectiveSelectionRules } from '../js/order-utils.js';
+import { parseMoneyCents, escapeHTML, safeExternalUrl, safeImageSource, normalizeWhatsApp, normalizeGroupId, effectiveSelectionRules, effectiveSelectionConstraints } from '../js/order-utils.js';
 
 const $=id=>document.getElementById(id);
 const e=escapeHTML;
 const state={products:[],groups:[],options:[],unsub:[],loaded:new Set(),seeding:false};
-const defaults={products:[{id:'acai-330',name:'Açaí de 330g',category:'Mais pedido',priceCents:1484,image:'assets/images/acai-330.webp',description:'Escolha até 4 opções entre açaí e cremes, 4 adicionais e 2 coberturas.',available:true,order:1,selectionRules:{'acai-cremes':4,adicionais:4,coberturas:2}},{id:'acai-750',name:'Açaí de 750g',category:'Tamanho família',priceCents:3374,image:'assets/images/acai-750.webp',description:'Escolha até 6 opções entre açaí e cremes, 6 adicionais e 2 coberturas.',available:true,order:2,selectionRules:{'acai-cremes':6,adicionais:6,coberturas:2}},{id:'acai-1kg',name:'Açaí de 1 kg',category:'Compartilhar',priceCents:4499,image:'assets/images/acai-1kg.webp',description:'Escolha até 8 opções entre açaí e cremes, 8 adicionais e 2 coberturas.',available:true,order:3,selectionRules:{'acai-cremes':8,adicionais:8,coberturas:2}},{id:'salada-gourmet',name:'Salada de fruta gourmet',category:'Especial',priceCents:1400,oldPriceCents:1550,image:'assets/images/salada-gourmet.webp',description:'400 ml • creme de morango e creme de avelã.',available:true,order:4,selectionRules:{}}],groups:[{id:'acai-cremes',name:'Açaí e cremes',order:1,available:true},{id:'adicionais',name:'Adicionais',order:2,available:true},{id:'coberturas',name:'Coberturas',order:3,available:true}],options:[['acai-cremes','Açaí tradicional'],['acai-cremes','Creme de ninho'],['acai-cremes','Creme de morango'],['acai-cremes','Creme de avelã'],['acai-cremes','Creme de Ovomaltine'],['adicionais','Leite em pó'],['adicionais','Granola'],['adicionais','Paçoca'],['adicionais','Jujuba'],['adicionais','Gotas de chocolate'],['adicionais','Morango'],['adicionais','Banana'],['coberturas','Leite condensado'],['coberturas','Cobertura de chocolate'],['coberturas','Cobertura de morango']].map(([groupId,name],i)=>({id:`${groupId}-${slug(name)}`,groupId,name,available:true,order:i+1,extraPriceCents:0}))};
+const defaults={products:[{id:'acai-330',name:'Açaí de 330g',category:'Mais pedido',priceCents:1484,image:'assets/images/acai-330.webp',description:'Escolha até 4 opções entre açaí e cremes, 4 adicionais e 2 coberturas.',available:true,order:1,selectionRules:{'acai-cremes':{min:1,max:4},adicionais:{min:0,max:4},coberturas:{min:0,max:2}}},{id:'acai-750',name:'Açaí de 750g',category:'Tamanho família',priceCents:3374,image:'assets/images/acai-750.webp',description:'Escolha até 6 opções entre açaí e cremes, 6 adicionais e 2 coberturas.',available:true,order:2,selectionRules:{'acai-cremes':{min:1,max:6},adicionais:{min:0,max:6},coberturas:{min:0,max:2}}},{id:'acai-1kg',name:'Açaí de 1 kg',category:'Compartilhar',priceCents:4499,image:'assets/images/acai-1kg.webp',description:'Escolha até 8 opções entre açaí e cremes, 8 adicionais e 2 coberturas.',available:true,order:3,selectionRules:{'acai-cremes':{min:1,max:8},adicionais:{min:0,max:8},coberturas:{min:0,max:2}}},{id:'salada-gourmet',name:'Salada de fruta gourmet',category:'Especial',priceCents:1400,oldPriceCents:1550,image:'assets/images/salada-gourmet.webp',description:'400 ml • creme de morango e creme de avelã.',available:true,order:4,selectionRules:{}}],groups:[{id:'acai-cremes',name:'Açaí e cremes',order:1,available:true},{id:'adicionais',name:'Adicionais',order:2,available:true},{id:'coberturas',name:'Coberturas',order:3,available:true}],options:[['acai-cremes','Açaí tradicional'],['acai-cremes','Creme de ninho'],['acai-cremes','Creme de morango'],['acai-cremes','Creme de avelã'],['acai-cremes','Creme de Ovomaltine'],['adicionais','Leite em pó'],['adicionais','Granola'],['adicionais','Paçoca'],['adicionais','Jujuba'],['adicionais','Gotas de chocolate'],['adicionais','Morango'],['adicionais','Banana'],['coberturas','Leite condensado'],['coberturas','Cobertura de chocolate'],['coberturas','Cobertura de morango']].map(([groupId,name],i)=>({id:`${groupId}-${slug(name)}`,groupId,name,available:true,order:i+1,extraPriceCents:0}))};
 function slug(text) { return String(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
 function money(value) { return new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}).format((Number(value)||0)/100); }
 function toast(message) { const el=$('admin-toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),4500); }
 function storeQuery(name) { return query(collection(db,name),where('storeId','==',STORE_ID)); }
 function fieldError(id,message) { const input=$(id);input.setCustomValidity(message);input.reportValidity();throw new Error(message); }
+function dynamicFieldError(input,message) { input.setCustomValidity(message);input.reportValidity();throw new Error(message); }
 function readPrice(id,{optional=false,allowZero=false}={}) {
   const value=parseMoneyCents($(id).value,{optional,allowZero});
   if(value===null)fieldError(id,allowZero?'Digite um valor válido, como 3,00 ou 3.00.':'Digite um preço maior que zero, como 14,84 ou 14.84.');
@@ -86,19 +87,30 @@ function renderOptions() {
   updateSeedButtons();
 }
 function renderRules(selected={}) {
-  const normalized=Object.fromEntries(Object.entries(selected).map(([id,max])=>[normalizeGroupId(id),max]));
+  const normalized=effectiveSelectionConstraints({selectionRules:selected});
   const root=$('product-group-rules');
   root.innerHTML=state.groups.map(group=>{
-    const max=normalized[normalizeGroupId(group.id)];
-    return `<label class="group-rule"><span><input type="checkbox" data-rule="${e(group.id)}" ${max!=null?'checked':''}> ${e(group.name)}</span><input type="number" min="1" max="20" data-max="${e(group.id)}" value="${e(max??1)}" ${max!=null?'':'disabled'}></label>`;
+    const rule=normalized[normalizeGroupId(group.id)],enabled=Boolean(rule);
+    return `<div class="group-rule"><label class="group-rule-toggle"><span><input type="checkbox" data-rule="${e(group.id)}" ${enabled?'checked':''}> ${e(group.name)}</span></label><label class="rule-number"><small>Mínimo</small><input type="number" min="0" max="20" data-min="${e(group.id)}" value="${e(rule?.min??0)}" ${enabled?'':'disabled'}></label><label class="rule-number"><small>Máximo</small><input type="number" min="1" max="20" data-max="${e(group.id)}" value="${e(rule?.max??1)}" ${enabled?'':'disabled'}></label></div>`;
   }).join('')||'<p class="muted">Crie os grupos primeiro. As regras existentes do produto serão preservadas.</p>';
-  root.querySelectorAll('[data-rule]').forEach(check=>check.onchange=()=>check.closest('.group-rule').querySelector('[data-max]').disabled=!check.checked);
+  root.querySelectorAll('[data-rule]').forEach(check=>check.onchange=()=>{
+    const row=check.closest('.group-rule');
+    row.querySelector('[data-min]').disabled=!check.checked;
+    row.querySelector('[data-max]').disabled=!check.checked;
+  });
+  root.querySelectorAll('[data-min],[data-max]').forEach(input=>input.addEventListener('input',()=>input.setCustomValidity('')));
 }
 function collectRules(previous={}) {
   if(!state.groups.length)return previous;
   const rules={};
   $('product-group-rules').querySelectorAll('[data-rule]').forEach(check=>{
-    if(check.checked)rules[check.dataset.rule]=Number(check.closest('.group-rule').querySelector('[data-max]').value);
+    if(!check.checked)return;
+    const row=check.closest('.group-rule'),minInput=row.querySelector('[data-min]'),maxInput=row.querySelector('[data-max]');
+    const min=Number(minInput.value),max=Number(maxInput.value);
+    if(!Number.isInteger(max)||max<1||max>20)dynamicFieldError(maxInput,'O máximo deve ser um número inteiro entre 1 e 20.');
+    if(!Number.isInteger(min)||min<0||min>20)dynamicFieldError(minInput,'O mínimo deve ser um número inteiro entre 0 e 20.');
+    if(min>max)dynamicFieldError(minInput,'O mínimo não pode ser maior que o máximo.');
+    rules[check.dataset.rule]={min,max};
   });
   return rules;
 }
@@ -111,7 +123,7 @@ function openProduct(id=null) {
   $('product-old-price').value=product?.oldPriceCents?money(product.oldPriceCents):'';
   $('product-category').value=product?.category||'';$('product-description').value=product?.description||'';$('product-image').value=product?.image||'';
   $('product-order').value=product?.order??state.products.length+1;$('product-available').checked=product?.available!==false;
-  renderRules(product?effectiveSelectionRules(product):{});$('product-dialog').showModal();
+  renderRules(product?effectiveSelectionConstraints(product):{});$('product-dialog').showModal();
 }
 function openGroup(id=null) {
   const group=id?state.groups.find(g=>g.id===id):null;resetValidity($('group-form'));
@@ -179,7 +191,7 @@ function bind() {
     const previous=state.products.find(product=>product.id===current);
     const rules=collectRules(previous?.selectionRules||{}),effective=effectiveSelectionRules({id,name,selectionRules:rules});
     if(state.groups.length&&effective['acai-cremes']&&!Object.keys(rules).some(key=>normalizeGroupId(key)==='acai-cremes'))throw new Error('Marque o grupo Açaí e cremes. Esse produto precisa de uma base.');
-    await saveRecord('products',id,{storeId:STORE_ID,name,priceCents,oldPriceCents:oldPriceCents||null,category:$('product-category').value.trim(),description:$('product-description').value.trim(),image,order:Number($('product-order').value)||0,available:$('product-available').checked,selectionRules:effective},!current);
+    await saveRecord('products',id,{storeId:STORE_ID,name,priceCents,oldPriceCents:oldPriceCents||null,category:$('product-category').value.trim(),description:$('product-description').value.trim(),image,order:Number($('product-order').value)||0,available:$('product-available').checked,selectionRules:rules},!current);
     $('product-dialog').close();toast('Produto salvo.');
   });
   bindForm('group-form',async()=>{
