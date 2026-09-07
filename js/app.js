@@ -37,7 +37,7 @@ const DEFAULT_PRODUCTS = [
 const state = {
   store: { ...DEFAULT_STORE }, products: [...DEFAULT_PRODUCTS], groups: [...DEFAULT_GROUPS], options: [...DEFAULT_OPTIONS],
   cart: loadCart(), currentProduct: null, currentSnapshot: '', cartNeedsReview: false, submitting: false, orderReturnPending: loadOrderReturnPending(),
-  remote: {}, loaded: new Set(), failures: new Set()
+  removedUnavailableProductIds: new Set(), remote: {}, loaded: new Set(), failures: new Set()
 };
 const $ = id => document.getElementById(id);
 const els = {
@@ -65,6 +65,12 @@ function setOrderReturnPending(pending) {
   try { if(pending)localStorage.setItem(ORDER_RETURN_KEY,'1'); else localStorage.removeItem(ORDER_RETURN_KEY); }
   catch { /* A confirmação continua funcionando nesta página. */ }
 }
+function clearCartReview() {
+  state.cartNeedsReview=false;
+  state.removedUnavailableProductIds.clear();
+  els.cartNotice.textContent='';
+  els.cartNotice.hidden=true;
+}
 function showOrderReturn() {
   if(!state.orderReturnPending||state.submitting||document.hidden||els.orderReturnDialog.open||els.productDialog.open||els.checkoutDialog.open)return;
   if(!state.cart.length){setOrderReturnPending(false);return;}
@@ -73,7 +79,7 @@ function showOrderReturn() {
 function resolveOrderReturn(startNew) {
   setOrderReturnPending(false);els.orderReturnDialog.close();
   if(!startNew){openCart();els.closeCart.focus();return;}
-  state.cart=[];state.cartNeedsReview=false;els.cartNotice.hidden=true;
+  state.cart=[];clearCartReview();
   els.checkoutForm.reset();toggleDeliveryFields();saveCart();renderCart();invalidatePreparedMessage();closeCart();
   showToast('Carrinho limpo. Você já pode montar um novo pedido.');els.cartButton.focus();
 }
@@ -94,14 +100,32 @@ function snapshotFor(product) {
 function invalidatePreparedMessage() { els.whatsappFallback.hidden=true; els.whatsappFallback.removeAttribute('href'); }
 function reconcileCurrentCart() {
   if(!catalogReady()) return false;
-  const result=reconcileCart(state.cart,state.products,state.groups,state.options);
+  const previousCart=state.cart;
+  const result=reconcileCart(previousCart,state.products,state.groups,state.options);
+  const remainingIds=new Set(result.items.map(item=>item.id));
+  previousCart.forEach(item=>{
+    if(remainingIds.has(item.id))return;
+    const product=state.products.find(entry=>entry.id===item.id);
+    if(product&&product.available===false)state.removedUnavailableProductIds.add(item.id);
+  });
   state.cart=result.items;
   if(result.changed) { saveCart(); renderCart(); invalidatePreparedMessage(); }
   if(result.messages.length) {
-    state.cartNeedsReview=true;
-    els.cartNotice.textContent=`Seu pedido foi atualizado. ${result.messages.join(' ')} Confira antes de continuar.`;
+    state.cartNeedsReview=state.cart.length>0;
+    const ending=state.cart.length?'Confira antes de continuar.':'O item foi removido do carrinho.';
+    els.cartNotice.textContent=`Seu pedido foi atualizado. ${result.messages.join(' ')} ${ending}`;
     els.cartNotice.hidden=false;
     showToast('Seu pedido foi atualizado. Confira o carrinho.');
+  }
+  if(state.removedUnavailableProductIds.size) {
+    [...state.removedUnavailableProductIds].forEach(id=>{
+      const product=state.products.find(entry=>entry.id===id);
+      if(product&&!unavailableReason(product))state.removedUnavailableProductIds.delete(id);
+    });
+    if(!state.removedUnavailableProductIds.size&&!state.cart.length&&!state.cartNeedsReview) {
+      els.cartNotice.textContent='';
+      els.cartNotice.hidden=true;
+    }
   }
   return result.messages.length>0;
 }
@@ -259,7 +283,7 @@ async function refreshFromServer() {
   if(!firebaseConfigured)return;
   let timer;
   try {
-    const fresh=await Promise.race([getCurrentCatalog(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('A conexão demorou. Tente novamente.')),12000);})]);
+    const fresh=await Promise.race([getCurrentCatalog(state.cart),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('A conexão demorou. Tente novamente.')),12000);})]);
     state.remote=fresh;state.loaded=new Set(['store','products','groups','options']);state.failures.clear();syncCatalog();
   } finally { clearTimeout(timer); }
 }
@@ -285,8 +309,14 @@ async function handleCheckout(event) {
     if(!wa)throw new Error('O contato da loja está em atualização. Tente novamente em instantes.');
     payload={...payload,items:state.cart,total:cartTotal()};
     const url=`https://wa.me/${wa}?text=${encodeURIComponent(buildWhatsAppMessage(state.store,payload,state.groups))}`;
-    if(popup&&!popup.closed){popup.location.replace(url);setOrderReturnPending(true);els.checkoutDialog.close();}
-    else {els.whatsappFallback.href=url;els.whatsappFallback.hidden=false;showToast('Toque em Abrir WhatsApp para continuar.');}
+    if(popup&&!popup.closed){
+      try {
+        popup.location.replace(url);setOrderReturnPending(true);els.checkoutDialog.close();
+      } catch(error) {
+        popup.close();els.whatsappFallback.href=url;els.whatsappFallback.hidden=false;
+        console.error('whatsapp-navigation',error);showToast('Não abriu automaticamente. Toque em Abrir WhatsApp para continuar.');
+      }
+    } else {els.whatsappFallback.href=url;els.whatsappFallback.hidden=false;showToast('Toque em Abrir WhatsApp para continuar.');}
   } catch(error) {
     popup?.close();console.error('checkout',error);showToast(error.message?.startsWith('O ')?error.message:'Não foi possível conferir o pedido. Verifique a conexão e tente novamente.');
   } finally {state.submitting=false;button.disabled=false;button.textContent='Montar mensagem';showOrderReturn();}
@@ -309,7 +339,7 @@ function init() {
   els.checkoutButton.onclick=()=>{
     if(!catalogReady())return showToast('Aguarde a atualização do cardápio.');
     if(reconcileCurrentCart()||!state.cart.length)return;
-    state.cartNeedsReview=false;els.cartNotice.hidden=true;invalidatePreparedMessage();closeCart();toggleDeliveryFields();els.checkoutDialog.showModal();
+    clearCartReview();invalidatePreparedMessage();closeCart();toggleDeliveryFields();els.checkoutDialog.showModal();
   };
   els.closeCheckout.onclick=()=>els.checkoutDialog.close();els.checkoutForm.addEventListener('submit',handleCheckout);
   els.checkoutForm.addEventListener('input',invalidatePreparedMessage);
