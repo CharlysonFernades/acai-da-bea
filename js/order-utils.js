@@ -156,7 +156,7 @@ export function buildCartItem(product, raw, groups, options) {
   for (const [groupId, { min, max }] of Object.entries(constraints)) {
     const values = requested[groupId] || [];
     const group = findGroup(groups, groupId);
-    if (values.length > max) return { error: `Você pode escolher até ${max} opções nesse grupo.` };
+    if (values.length > max) return { error: `Você pode escolher até ${max} ${max === 1 ? 'opção' : 'opções'} nesse grupo.` };
     if (values.length < min) {
       if (groupId === 'acai-cremes' && min === 1) return { error: 'Selecione no mínimo 1 opção.' };
       return { error: `Selecione no mínimo ${min} ${min === 1 ? 'opção' : 'opções'} em ${group?.name || 'este grupo'}.` };
