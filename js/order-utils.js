@@ -48,6 +48,17 @@ export function normalizeGroupId(value) {
   return ['acaicremes', 'acai-cremes', 'acai-e-cremes'].includes(key) ? 'acai-cremes' : key;
 }
 
+function orderSelectionRules(rules) {
+  const ordered = {};
+  for (const id of ['acai-cremes', 'adicionais', 'coberturas']) {
+    if (Object.prototype.hasOwnProperty.call(rules, id)) ordered[id] = rules[id];
+  }
+  for (const [id, maximum] of Object.entries(rules)) {
+    if (!Object.prototype.hasOwnProperty.call(ordered, id)) ordered[id] = maximum;
+  }
+  return ordered;
+}
+
 export function effectiveSelectionRules(product) {
   const name = `${product?.id || ''} ${product?.name || ''}`.toLowerCase();
   let inferred = {};
@@ -59,10 +70,10 @@ export function effectiveSelectionRules(product) {
     const max = Number(maximum);
     if (Number.isInteger(max) && max > 0 && max <= 20) rules[normalizeGroupId(id)] = max;
   }
-  if (!Object.keys(rules).length) return inferred;
+  if (!Object.keys(rules).length) return orderSelectionRules(inferred);
   // Os tamanhos de açaí conhecidos continuam exigindo uma base, mesmo em cadastros antigos.
   if (inferred['acai-cremes'] && !rules['acai-cremes']) rules['acai-cremes'] = inferred['acai-cremes'];
-  return rules;
+  return orderSelectionRules(rules);
 }
 
 export function findGroup(groups, id) {
