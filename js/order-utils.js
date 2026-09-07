@@ -118,7 +118,9 @@ export function availableOptions(options, groupId) {
 }
 
 export function productUnavailableReason(product, groups, options) {
-  if (!product || product.available === false) return 'Produto indisponível.';
+  if (!product) return 'Produto indisponível.';
+  if (product.visible === false) return 'Produto não está mais no cardápio.';
+  if (product.available === false) return 'Produto indisponível.';
   if (!Number.isSafeInteger(product.priceCents) || product.priceCents <= 0) return 'Preço em atualização.';
   const constraints = effectiveSelectionConstraints(product);
   for (const [groupId, { min }] of Object.entries(constraints)) {

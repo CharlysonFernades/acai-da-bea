@@ -106,7 +106,7 @@ function reconcileCurrentCart() {
   previousCart.forEach(item=>{
     if(remainingIds.has(item.id))return;
     const product=state.products.find(entry=>entry.id===item.id);
-    if(product&&product.available===false)state.removedUnavailableProductIds.add(item.id);
+    if(product&&(product.available===false||product.visible===false))state.removedUnavailableProductIds.add(item.id);
   });
   state.cart=result.items;
   if(result.changed) { saveCart(); renderCart(); invalidatePreparedMessage(); }
@@ -144,7 +144,7 @@ function syncCatalog() {
   }
 }
 function updateHeroPrice() {
-  const available=state.products.filter(p=>!unavailableReason(p));
+  const available=state.products.filter(p=>p.visible!==false&&!unavailableReason(p));
   const acais=available.filter(p=>effectiveSelectionRules(p)['acai-cremes']);
   const candidates=acais.length?acais:available;
   const badge=els.heroMinPrice.closest('.hero-price');
@@ -188,7 +188,7 @@ function bindImageFallback(container) {
 }
 function renderProducts() {
   const ready=catalogReady();
-  els.productGrid.innerHTML=state.products.map(product=>{
+  els.productGrid.innerHTML=state.products.filter(product=>product.visible!==false).map(product=>{
     const reason=unavailableReason(product), disabled=!ready||Boolean(reason);
     return `<article class="product-card ${disabled?'is-unavailable':''}"><div class="product-photo"><img src="${e(safeImageSource(product.image))}" alt="${e(product.name)}" loading="lazy"></div><div class="product-body"><span class="product-tag">${e(product.category||'Cardápio')}</span>${reason?'<span class="sold-out-badge">INDISPONÍVEL NO MOMENTO</span>':''}<h3 class="product-title">${e(product.name)}</h3><p class="product-desc">${e(product.description||'')}</p><div class="product-meta"><div class="product-price">${product.oldPriceCents>product.priceCents?`<span class="old-price">${formatCurrency(product.oldPriceCents)}</span>`:''}<strong>${formatCurrency(product.priceCents)}</strong></div><button class="button primary" type="button" data-product-open="${e(product.id)}" ${disabled?'disabled':''}>${!ready?(state.failures.size?'Aguarde atualização':'Carregando…'):reason?'Indisponível':'Escolher'}</button></div></div></article>`;
   }).join('')||'<div class="cart-empty"><strong>Cardápio em atualização.</strong><p>Entre em contato com a loja para consultar os produtos.</p></div>';

@@ -59,10 +59,14 @@ function updateSeedButtons() {
 }
 function renderProducts() {
   const root=$('products-list');
-  root.innerHTML=state.products.length?state.products.map(product=>`<article class="list-item"><div><h3>${e(product.name)}</h3><p>R$ ${money(product.priceCents)} • ${e(product.category||'Sem categoria')}</p></div><div class="list-actions"><button class="availability ${product.available===false?'off':'on'}" data-toggle-product="${e(product.id)}">${product.available===false?'Esgotado':'Disponível'}</button><button class="btn ghost small" data-edit-product="${e(product.id)}">Editar</button></div></article>`).join(''):'<div class="empty">Nenhum produto cadastrado.</div>';
+  root.innerHTML=state.products.length?state.products.map(product=>`<article class="list-item"><div><h3>${e(product.name)}</h3><p>R$ ${money(product.priceCents)} • ${e(product.category||'Sem categoria')}</p></div><div class="list-actions"><button class="availability ${product.available===false?'off':'on'}" data-toggle-product="${e(product.id)}">${product.available===false?'Esgotado':'Disponível'}</button><button class="availability ${product.visible===false?'off':'on'}" data-toggle-visible="${e(product.id)}">${product.visible===false?'Oculto':'No cardápio'}</button><button class="btn ghost small" data-edit-product="${e(product.id)}">Editar</button></div></article>`).join(''):'<div class="empty">Nenhum produto cadastrado.</div>';
   root.querySelectorAll('[data-toggle-product]').forEach(button=>button.onclick=()=>action(button,async()=>{
     const product=state.products.find(p=>p.id===button.dataset.toggleProduct);
     await updateDoc(doc(db,'products',product.id),{available:product.available===false});toast('Disponibilidade atualizada.');
+  }));
+  root.querySelectorAll('[data-toggle-visible]').forEach(button=>button.onclick=()=>action(button,async()=>{
+    const product=state.products.find(p=>p.id===button.dataset.toggleVisible);
+    await updateDoc(doc(db,'products',product.id),{visible:product.visible===false});toast(product.visible===false?'Produto exibido no cardápio.':'Produto ocultado do cardápio.');
   }));
   root.querySelectorAll('[data-edit-product]').forEach(button=>button.onclick=()=>openProduct(button.dataset.editProduct));
   updateSeedButtons();
@@ -191,7 +195,7 @@ function bind() {
     const previous=state.products.find(product=>product.id===current);
     const rules=collectRules(previous?.selectionRules||{}),effective=effectiveSelectionRules({id,name,selectionRules:rules});
     if(state.groups.length&&effective['acai-cremes']&&!Object.keys(rules).some(key=>normalizeGroupId(key)==='acai-cremes'))throw new Error('Marque o grupo Açaí e cremes. Esse produto precisa de uma base.');
-    await saveRecord('products',id,{storeId:STORE_ID,name,priceCents,oldPriceCents:oldPriceCents||null,category:$('product-category').value.trim(),description:$('product-description').value.trim(),image,order:Number($('product-order').value)||0,available:$('product-available').checked,selectionRules:rules},!current);
+    await saveRecord('products',id,{storeId:STORE_ID,name,priceCents,oldPriceCents:oldPriceCents||null,category:$('product-category').value.trim(),description:$('product-description').value.trim(),image,order:Number($('product-order').value)||0,available:$('product-available').checked,visible:previous?.visible!==false,selectionRules:rules},!current);
     $('product-dialog').close();toast('Produto salvo.');
   });
   bindForm('group-form',async()=>{

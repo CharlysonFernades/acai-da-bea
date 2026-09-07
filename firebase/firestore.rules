@@ -95,6 +95,7 @@ service cloud.firestore {
         'image',
         'order',
         'available',
+        'visible',
         'selectionRules'
       ]);
     }
@@ -109,6 +110,7 @@ service cloud.firestore {
         'image',
         'order',
         'available',
+        'visible',
         'selectionRules'
       ]);
     }
@@ -134,6 +136,7 @@ service cloud.firestore {
         && data.order >= 0
         && data.order <= 100000
         && data.available is bool
+        && data.get('visible', true) is bool
         && data.selectionRules is map
         && data.selectionRules.size() <= 20;
     }
