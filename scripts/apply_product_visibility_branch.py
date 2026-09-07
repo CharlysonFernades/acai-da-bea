@@ -45,26 +45,34 @@ new_save = "await saveRecord('products',id,{storeId:STORE_ID,name,priceCents,old
 replace_once('admin/admin.js', old_save, new_save)
 
 # Firestore Rules: visible opcional para documentos antigos.
-replace_once(
-    'firebase/firestore.rules',
-    "        'available',\n        'selectionRules'\n      ]);",
-    "        'available',\n        'visible',\n        'selectionRules'\n      ]);",
-)
-replace_once(
-    'firebase/firestore.rules',
-    "        'available',\n        'selectionRules'\n      ]);\n    }\n\n    function productUpdateFieldsAllowed()",
-    "        'available',\n        'visible',\n        'selectionRules'\n      ]);\n    }\n\n    function productUpdateFieldsAllowed()",
-)
-replace_once(
-    'firebase/firestore.rules',
-    "        'available',\n        'selectionRules'\n      ]);\n    }\n\n    function productDataIsValid(data)",
-    "        'available',\n        'visible',\n        'selectionRules'\n      ]);\n    }\n\n    function productDataIsValid(data)",
-)
-replace_once(
-    'firebase/firestore.rules',
-    "        && data.available is bool\n        && data.selectionRules is map",
-    "        && data.available is bool\n        && data.get('visible', true) is bool\n        && data.selectionRules is map",
-)
+rules_path = Path('firebase/firestore.rules')
+rules = rules_path.read_text()
+needle = "        'available',\n        'selectionRules'\n      ]);"
+replacement = "        'available',\n        'visible',\n        'selectionRules'\n      ]);"
+
+create_start = rules.index('    function productCreateFieldsAllowed()')
+update_start = rules.index('    function productUpdateFieldsAllowed()', create_start)
+create_block = rules[create_start:update_start]
+create_pos = create_block.rfind(needle)
+if create_pos < 0:
+    raise SystemExit('Lista hasOnly de criação de produto não encontrada nas rules.')
+create_block = create_block[:create_pos] + create_block[create_pos:].replace(needle, replacement, 1)
+rules = rules[:create_start] + create_block + rules[update_start:]
+
+update_start = rules.index('    function productUpdateFieldsAllowed()')
+valid_start = rules.index('    function productDataIsValid(data)', update_start)
+update_block = rules[update_start:valid_start]
+if needle not in update_block:
+    raise SystemExit('Lista de atualização de produto não encontrada nas rules.')
+update_block = update_block.replace(needle, replacement, 1)
+rules = rules[:update_start] + update_block + rules[valid_start:]
+
+validation_old = "        && data.available is bool\n        && data.selectionRules is map"
+validation_new = "        && data.available is bool\n        && data.get('visible', true) is bool\n        && data.selectionRules is map"
+if validation_old not in rules:
+    raise SystemExit('Validação de produto não encontrada nas rules.')
+rules = rules.replace(validation_old, validation_new, 1)
+rules_path.write_text(rules)
 
 Path('tests/product-visibility.test.js').write_text("""import test from 'node:test';
 import assert from 'node:assert/strict';
