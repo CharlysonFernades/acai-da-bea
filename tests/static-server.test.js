@@ -62,6 +62,6 @@ test('servidor local entrega cliente, painel e scripts principais', async t => {
 });
 
 test('servidor local não permite escapar da raiz por caminho relativo', () => {
-  assert.equal(localFile('/../fora.txt'), path.resolve(root, 'fora.txt'));
+  assert.equal(localFile('/../fora.txt'), null);
   assert.equal(localFile('/%2e%2e/%2e%2e/etc/passwd'), null);
 });
