@@ -4,8 +4,8 @@ Sistema web do **Açaí da Bea** com cardápio público, personalização de pro
 
 ## URLs
 
-- Cliente: `https://charlysonfernades.github.io/acai-da-bea/`
-- Administração: `https://charlysonfernades.github.io/acai-da-bea/admin/`
+- Cliente: `https://charlysonfernandes.github.io/acai-da-bea/`
+- Administração: `https://charlysonfernandes.github.io/acai-da-bea/admin/`
 
 O site público não possui link para o painel administrativo.
 
@@ -25,9 +25,12 @@ Pelo `/admin/`, um administrador autorizado pode gerenciar:
 
 - dados da loja, WhatsApp, Instagram, endereço e horário;
 - ativação/desativação do delivery;
-- produtos, preços, descrições, imagens e disponibilidade;
+- produtos, preços, descrições, imagens e ordem;
+- disponibilidade (`Disponível/Esgotado`);
+- exibição no cardápio (`No cardápio/Oculto`);
 - grupos de personalização;
-- opções e valores adicionais.
+- opções, valores adicionais e disponibilidade;
+- mínimo e máximo de escolhas por grupo em cada produto.
 
 Os dados comerciais devem ser alterados pelo painel/Firestore, e não diretamente no código do site público.
 
@@ -40,6 +43,8 @@ acai-da-bea/
 ├── assets/
 │   └── images/
 ├── css/
+├── docs/
+├── firebase/
 ├── js/
 │   ├── app.js
 │   ├── catalog-read-plan.js
@@ -51,15 +56,39 @@ acai-da-bea/
 
 ## Desenvolvimento local
 
-Para visualizar o site localmente, sirva a pasta por HTTP. Exemplo com a extensão **Live Server** no VS Code.
+Para visualizar o site localmente, sirva a pasta por HTTP. Exemplos:
 
-Para executar os testes automatizados:
+```bash
+python3 -m http.server 8000
+```
+
+ou use a extensão **Live Server** no VS Code.
+
+O Firebase deve manter `localhost` autorizado quando for necessário testar login local.
+
+## Verificação
+
+O projeto usa Node.js 20 ou superior.
+
+Verificação de sintaxe:
+
+```bash
+npm run check
+```
+
+Testes automatizados:
 
 ```bash
 npm test
 ```
 
-O projeto usa Node.js 20 ou superior para a suíte de testes.
+Verificação completa antes de considerar uma alteração pronta:
+
+```bash
+npm run verify
+```
+
+O GitHub Actions executa a mesma verificação automaticamente em pushes e pull requests.
 
 ## Firebase
 
@@ -76,4 +105,14 @@ Collections usadas pelo catálogo:
 - `options`
 - `admins` para autorização do painel.
 
-Veja `ADMIN_SETUP.md` para os pontos de configuração e `admin/USO_DA_DONA.md` para a rotina de uso do painel.
+O arquivo `firebase/firestore.rules` é a referência versionada das Rules, mas a publicação no Firebase Console é separada do deploy do GitHub Pages.
+
+## Documentação importante
+
+- `ADMIN_SETUP.md` — configuração administrativa e Firebase.
+- `admin/USO_DA_DONA.md` — rotina simples do painel.
+- `SECURITY.md` — princípios de segurança e resposta a incidentes.
+- `docs/CONTINUIDADE.md` — como continuar, testar e recuperar o projeto com segurança.
+- `docs/IMPLANTACAO_CARDAPIO_OFICIAL.md` — procedimento para substituir os dados demonstrativos pelo cardápio real.
+
+Antes de uma implantação oficial, leia principalmente os dois arquivos em `docs/` e execute `npm run verify`.
