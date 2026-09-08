@@ -4,8 +4,8 @@ Sistema web do **Açaí da Bea** com cardápio público, personalização de pro
 
 ## URLs
 
-- Cliente: `https://charlysonfernandes.github.io/acai-da-bea/`
-- Administração: `https://charlysonfernandes.github.io/acai-da-bea/admin/`
+- Cliente: `https://charlysonfernades.github.io/acai-da-bea/`
+- Administração: `https://charlysonfernades.github.io/acai-da-bea/admin/`
 
 O site público não possui link para o painel administrativo.
 
