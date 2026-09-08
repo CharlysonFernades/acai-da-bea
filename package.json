@@ -2,6 +2,12 @@
   "name": "acai-da-bea",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node --test" },
-  "engines": { "node": ">=20" }
+  "scripts": {
+    "check": "node --check js/app.js && node --check js/order-utils.js && node --check js/store-service.js && node --check js/catalog-read-plan.js && node --check admin/admin.js",
+    "test": "node --test",
+    "verify": "npm run check && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }
